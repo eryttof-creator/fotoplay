@@ -230,7 +230,7 @@ export const gameAction = createServerFn({ method: "POST" })
       }
       const { data: updated, error: commitError } = await db.rpc("commit_game_move", {
         p_room_id: room.id, p_version: room.version,
-        p_state: { ...res.state, playerIds: ids }, p_secrets: res.secrets ?? {},
+        p_state: { ...res.state, playerIds: ids }, p_secrets: JSON.parse(JSON.stringify(res.secrets ?? {})),
       });
       if (commitError) throw new Error("Não foi possível salvar a jogada. Tente novamente.");
       if (!updated) continue; // state and private choices commit atomically, or retry
