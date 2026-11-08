@@ -199,6 +199,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      commit_game_move: {
+        Args: {
+          p_room_id: string
+          p_secrets: Json
+          p_state: Json
+          p_version: number
+        }
+        Returns: boolean
+      }
       is_room_member: {
         Args: { _room: string; _user: string }
         Returns: boolean

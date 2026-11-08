@@ -8,6 +8,7 @@ import { useSignedUrl, compressImage, uploadPhoto } from "@/lib/photos";
 import { AVATARS } from "@/lib/games/catalog";
 import type { PlayerRow } from "@/lib/useRoom";
 import { cn } from "@/lib/utils";
+import { playSound } from "@/lib/sounds";
 
 export interface GameProps {
   state: any;
@@ -178,6 +179,7 @@ export function Reaction({ state, players, me, act, offset }: GameProps) {
     const t = setTimeout(() => {
       shownAt.current = performance.now();
       setGo(true);
+      playSound("tick");
     }, Math.max(0, delay));
     return () => clearTimeout(t);
   }, [state.phase, state.goAt, offset]);

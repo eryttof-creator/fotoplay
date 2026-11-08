@@ -22,6 +22,13 @@
       "when": 1794097919862,
       "tag": "0002_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794099912933,
+      "tag": "0003_atomic_party_game_moves",
+      "breakpoints": true
     }
   ]
 }

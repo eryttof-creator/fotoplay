@@ -8,6 +8,9 @@ import { TopBar, Confetti } from "@/components/Chrome";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { TicTacToe, Memory, RockPaperScissors, Reaction, GuessPhoto, WhoAmI, type GameProps } from "@/components/games/Games";
+import { Stop, Quiz, Draw, Truth } from "@/components/games/PartyGames";
+import { playSound, unlockSound } from "@/lib/sounds";
+import { useRef } from "react";
 import { GAMES, gameInfo, playersLabel } from "@/lib/games/catalog";
 import { GAME_LIMITS, type GameId } from "@/lib/games/engine";
 import { useUserId } from "@/lib/session";
@@ -32,6 +35,7 @@ export const Route = createFileRoute("/sala/$code")({
 
 const GAME_UI: Record<GameId, (p: GameProps) => React.ReactElement> = {
   tictactoe: TicTacToe, memory: Memory, rps: RockPaperScissors, guess: GuessPhoto, whoami: WhoAmI, reaction: Reaction,
+  stop: Stop, quiz: Quiz, draw: Draw, truth: Truth,
 };
 const errMsg = (e: any) => {
   const m = String(e?.message ?? e);
@@ -308,12 +312,15 @@ function Match({ room, players, me, offset, secrets, refresh }: { room: RoomRow;
 
   const act = useCallback(
     async (type: string, payload: Record<string, unknown> = {}) => {
+      unlockSound();
       try {
         const r = await gameAction({ data: { roomId: room.id, type, payload } });
         if (!r.ok) {
+          if (type !== "timeout") playSound("error");
           if (type !== "timeout") toast.error(r.error);
           return false;
         }
+        if (!["timeout", "stroke", "save"].includes(type)) playSound("tap");
         return true;
       } catch (e) {
         toast.error(errMsg(e));
@@ -331,6 +338,16 @@ function Match({ room, players, me, offset, secrets, refresh }: { room: RoomRow;
   const scoreOf = (p: PlayerRow) => (room.game === "tictactoe" ? p.wins : (state.scores?.[p.user_id] ?? 0));
   const turnId = state.turn ?? state.presenter;
   const won = finished?.winners.includes(me);
+  const previous = useRef<any>(null);
+  useEffect(() => {
+    const prev = previous.current;
+    if (prev) {
+      if (finished && !prev.finished) playSound(won ? "win" : "round");
+      else if ((state.scores?.[me] ?? 0) > (prev.scores?.[me] ?? 0)) playSound("success");
+      else if (state.phase !== prev.phase || state.turn !== prev.turn || state.game !== prev.game || state.last?.n !== prev.last?.n) playSound("round");
+    } else playSound("round");
+    previous.current = state;
+  }, [state, finished, won, me]);
 
   return (
     <div>
