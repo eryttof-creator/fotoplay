@@ -1,5 +1,5 @@
 // Pure, server-authoritative game rules. Every move is validated here before being saved.
-export type GameId = "tictactoe" | "memory" | "rps" | "guess" | "whoami" | "reaction";
+export type GameId = "tictactoe" | "memory" | "rps" | "guess" | "whoami" | "reaction" | "stop" | "quiz" | "draw" | "truth";
 
 export interface PlayerRef {
   id: string;
@@ -37,6 +37,10 @@ export const GAME_LIMITS: Record<GameId, { min: number; max: number }> = {
   guess: { min: 2, max: 8 },
   whoami: { min: 2, max: 8 },
   reaction: { min: 2, max: 6 },
+  stop: { min: 2, max: 8 },
+  quiz: { min: 2, max: 8 },
+  draw: { min: 2, max: 8 },
+  truth: { min: 2, max: 8 },
 };
 
 export const normalize = (s: string) =>
@@ -88,6 +92,18 @@ export const CHARACTERS = [
 ];
 
 /* ---------------- Engine ---------------- */
+export const STOP_CATEGORIES = ["Nome", "Animal", "Fruta", "Cidade", "Objeto"];
+export const QUIZ_PROMPTS = ["Quem é mais provável de esquecer o próprio aniversário?", "Quem sobreviveria numa ilha deserta?", "Quem é mais provável de virar famoso?", "Quem contaria a melhor piada?", "Quem toparia uma viagem de última hora?"];
+const stopLetter = () => "ABCDEFGHIJKLMNOPRSTUV"[Math.floor(Math.random() * 21)];
+const partyFinish = (s: any, ps: PlayerRef[], title: string): Result => {
+  const winners = topScorers(s.scores);
+  s.finished = { winners: winners.length === ps.length ? [] : winners, summary: `${title}: ${winners.map((id) => nameOf(ps, id)).join(" e ")} no topo!` };
+  return { state: s, finish: s.finished };
+};
+function stopAnswers(payload: any) {
+  if (!Array.isArray(payload?.answers) || payload.answers.length !== STOP_CATEGORIES.length) fail("Preencha as categorias.");
+  return payload.answers.map((v: unknown) => String(v ?? "").trim().slice(0, 40));
+}
 export function initGame(game: GameId, ctx: Omit<Ctx, "state"> & { prev?: any }): Result {
   const ps = ctx.players;
   const lim = GAME_LIMITS[game];
@@ -96,6 +112,15 @@ export function initGame(game: GameId, ctx: Omit<Ctx, "state"> & { prev?: any })
   const round = (ctx.prev?.round ?? 0) + 1;
 
   switch (game) {
+    case "stop":
+      return { state: { round, game: 1, maxGames: 3, phase: "writing", letter: stopLetter(), endsAt: ctx.now + 90_000, submitted: {}, answers: {}, points: {}, scores: zeroScores(ps) } };
+    case "quiz":
+      return { state: { round, game: 1, phase: "voting", prompt: QUIZ_PROMPTS[0], voted: {}, votes: {}, leaders: [], scores: zeroScores(ps) } };
+    case "draw":
+    case "truth": {
+      const order = shuffle(ps.map((p) => p.id));
+      return { state: { round, turn: 0, order, presenter: order[0], phase: "prepare", statement: "", answer: null, voted: {}, votes: {}, strokes: [], endsAt: 0, guessed: {}, feed: [], scores: zeroScores(ps) } };
+    }
     case "tictactoe": {
       const a = ps[0]!, b = ps[1]!;
       const x = round % 2 === 1 ? a : b;
@@ -156,6 +181,122 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
   if (!ps.some((p) => p.id === uid)) fail("Você não está nesta partida.");
 
   switch (game) {
+    case "stop": {
+      if (type === "save" || type === "stop") {
+        if (s.phase !== "writing") fail("A rodada já encerrou.");
+        if (ctx.now >= s.endsAt) fail("O tempo acabou.");
+        const answers = stopAnswers(payload);
+        const secrets = { [`${uid}:stop`]: { answers } };
+        s.submitted[uid] = true;
+        if (type === "save") return { state: s, secrets };
+        if (!answers.every((a: string) => normalize(a).startsWith(s.letter.toLowerCase()))) fail("Complete todas as categorias com a letra sorteada antes de pedir Stop.");
+        return revealStop(s, ps, { ...ctx.secrets, ...secrets }, secrets);
+      }
+      if (type === "timeout") {
+        if (s.phase !== "writing" || ctx.now < s.endsAt) fail("Ainda há tempo.");
+        return revealStop(s, ps, ctx.secrets);
+      }
+      if (type === "next") {
+        if (s.phase !== "result") fail("A rodada ainda não acabou.");
+        if (s.game >= s.maxGames) return partyFinish(s, ps, "Stop");
+        s.game++; s.phase = "writing"; s.letter = stopLetter(); s.endsAt = ctx.now + 90_000;
+        s.submitted = {}; s.answers = {}; s.points = {};
+        return { state: s, secrets: Object.fromEntries(ps.map((p) => [`${p.id}:stop`, null])) };
+      }
+      return fail("Ação inválida.");
+    }
+    case "quiz": {
+      if (type === "vote") {
+        if (s.phase !== "voting" || s.voted[uid]) fail("Você já votou ou a votação terminou.");
+        const target = String(payload?.target ?? "");
+        if (!ps.some((p) => p.id === target)) fail("Jogador inválido.");
+        const secrets = { [`${uid}:quiz`]: { target } };
+        s.voted[uid] = true;
+        if (ps.every((p) => s.voted[p.id])) {
+          const all = { ...ctx.secrets, ...secrets };
+          s.votes = Object.fromEntries(ps.map((p) => [p.id, (all[`${p.id}:quiz`] as any)?.target]));
+          const counts: Record<string, number> = zeroScores(ps);
+          Object.values(s.votes).forEach((id: any) => { counts[id] += 1; });
+          s.leaders = topScorers(counts);
+          ps.forEach((p) => { if (s.leaders.includes(s.votes[p.id])) s.scores[p.id] += 1; });
+          s.phase = "result";
+        }
+        return { state: s, secrets };
+      }
+      if (type === "next") {
+        if (s.phase !== "result") fail("A votação ainda não acabou.");
+        if (s.game >= QUIZ_PROMPTS.length) return partyFinish(s, ps, "Quiz da Galera");
+        s.game++; s.prompt = QUIZ_PROMPTS[s.game - 1]; s.phase = "voting"; s.voted = {}; s.votes = {}; s.leaders = [];
+        return { state: s, secrets: Object.fromEntries(ps.map((p) => [`${p.id}:quiz`, null])) };
+      }
+      return fail("Ação inválida.");
+    }
+    case "truth":
+    case "draw": {
+      const presenter = s.presenter === uid;
+      if (type === "present") {
+        if (!presenter || s.phase !== "prepare") fail("Só quem apresenta pode iniciar esta rodada.");
+        if (game === "truth") {
+          const statement = String(payload?.statement ?? "").trim().slice(0, 180);
+          if (statement.length < 5 || typeof payload?.truth !== "boolean") fail("Escreva a história e escolha verdade ou mentira.");
+          s.statement = statement; s.phase = "voting";
+          return { state: s, secrets: { [`${uid}:truth`]: { truth: payload.truth } } };
+        }
+        const answer = String(payload?.word ?? "").trim().slice(0, 40);
+        if (normalize(answer).length < 2) fail("Escolha uma palavra.");
+        s.phase = "drawing"; s.endsAt = ctx.now + 60_000;
+        return { state: s, secrets: { [`${uid}:draw`]: { answer } } };
+      }
+      if (game === "truth" && type === "vote") {
+        if (presenter || s.phase !== "voting" || s.voted[uid]) fail("Você não pode votar agora.");
+        if (typeof payload?.truth !== "boolean") fail("Voto inválido.");
+        s.voted[uid] = true;
+        const secrets = { [`${uid}:vote`]: { truth: payload.truth } };
+        if (ps.filter((p) => p.id !== s.presenter).every((p) => s.voted[p.id])) {
+          const all = { ...ctx.secrets, ...secrets };
+          s.answer = (all[`${s.presenter}:truth`] as any)?.truth;
+          s.votes = Object.fromEntries(ps.filter((p) => p.id !== s.presenter).map((p) => [p.id, (all[`${p.id}:vote`] as any)?.truth]));
+          Object.entries(s.votes).forEach(([id, vote]) => { if (vote === s.answer) s.scores[id]++; else s.scores[s.presenter]++; });
+          s.phase = "reveal";
+        }
+        return { state: s, secrets };
+      }
+      if (game === "draw" && (type === "stroke" || type === "erase")) {
+        if (!presenter || s.phase !== "drawing" || ctx.now >= s.endsAt) fail("Você não pode desenhar agora.");
+        if (type === "erase") { s.strokes = []; return { state: s }; }
+        if (s.strokes.length >= 400) fail("Limite de traços atingido. Limpe o desenho.");
+        const points = payload?.points;
+        if (!Array.isArray(points) || points.length < 1 || points.length > 100 || !points.every((p) => Array.isArray(p) && p.length === 2 && p.every((n: any) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1))) fail("Traço inválido.");
+        const color = payload?.color;
+        if (!["ink", "coral", "sky", "lime"].includes(color)) fail("Cor inválida.");
+        s.strokes.push({ points, color });
+        return { state: s };
+      }
+      if (game === "draw" && type === "guess") {
+        if (presenter || s.phase !== "drawing" || s.guessed[uid] || ctx.now >= s.endsAt) fail("Você não pode dar um palpite agora.");
+        const text = String(payload?.text ?? "").trim().slice(0, 40);
+        if (!text) fail("Escreva seu palpite.");
+        const answer = (ctx.secrets[`${s.presenter}:draw`] as any)?.answer ?? "";
+        const ok = normalize(text) === normalize(answer);
+        if (ok) { s.guessed[uid] = true; s.scores[uid] += 3; s.scores[s.presenter]++; }
+        s.feed.push({ uid, text: ok ? "acertou!" : text, ok }); s.feed = s.feed.slice(-30);
+        if (ps.filter((p) => p.id !== s.presenter).every((p) => s.guessed[p.id])) { s.phase = "reveal"; s.answer = answer; }
+        return { state: s };
+      }
+      if (game === "draw" && type === "timeout") {
+        if (s.phase !== "drawing" || ctx.now < s.endsAt) fail("Ainda há tempo.");
+        s.phase = "reveal"; s.answer = (ctx.secrets[`${s.presenter}:draw`] as any)?.answer;
+        return { state: s };
+      }
+      if (type === "next") {
+        if (s.phase !== "reveal") fail("A rodada ainda não acabou.");
+        s.turn++;
+        if (s.turn >= s.order.length) return partyFinish(s, ps, game === "draw" ? "Desenhe e Adivinhe" : "Verdade ou Mentira");
+        s.presenter = s.order[s.turn]; s.phase = "prepare"; s.statement = ""; s.answer = null; s.voted = {}; s.votes = {}; s.strokes = []; s.guessed = {}; s.feed = []; s.endsAt = 0;
+        return { state: s, secrets: Object.fromEntries(ps.flatMap((p) => ["truth", "vote", "draw"].map((k) => [`${p.id}:${k}`, null]))) };
+      }
+      return fail("Ação inválida.");
+    }
     case "tictactoe": {
       if (type !== "move") fail("Ação inválida.");
       if (s.turn !== uid) fail("Não é a sua vez.");
@@ -408,4 +549,19 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
     }
   }
   return fail("Jogo desconhecido.");
+}
+
+function revealStop(s: any, ps: PlayerRef[], all: Secrets, secrets?: Secrets): Result {
+  s.answers = Object.fromEntries(ps.map((p) => [p.id, (all[`${p.id}:stop`] as any)?.answers ?? STOP_CATEGORIES.map(() => "")]));
+  s.points = {};
+  ps.forEach((p) => {
+    s.points[p.id] = s.answers[p.id].map((a: string, i: number) => {
+      const n = normalize(a);
+      if (!n.startsWith(s.letter.toLowerCase())) return 0;
+      return ps.some((other) => other.id !== p.id && normalize(s.answers[other.id][i]) === n) ? 5 : 10;
+    });
+    s.scores[p.id] += s.points[p.id].reduce((a: number, b: number) => a + b, 0);
+  });
+  s.phase = "result";
+  return { state: s, secrets };
 }

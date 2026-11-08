@@ -13,6 +13,10 @@ export const GAMES: { id: GameId; name: string; emoji: string; tagline: string; 
   { id: "guess", name: "Adivinhe a Foto", emoji: "🔍", tagline: "Mande uma foto. Quem acerta primeiro?", color: "bg-sun" },
   { id: "whoami", name: "Quem Sou Eu?", emoji: "🎭", tagline: "Pergunte sim ou não e descubra quem é.", color: "bg-coral" },
   { id: "reaction", name: "Batalha de Reação", emoji: "⚡", tagline: "Clique no sinal mais rápido que todos.", color: "bg-sky" },
+  { id: "stop", name: "Stop (Adedonha)", emoji: "✍️", tagline: "Uma letra, cinco categorias e uma corrida.", color: "bg-lime" },
+  { id: "quiz", name: "Quiz da Galera", emoji: "💬", tagline: "Quem é mais provável? A galera decide.", color: "bg-sun" },
+  { id: "draw", name: "Desenhe e Adivinhe", emoji: "🎨", tagline: "Um desenha, os outros dão seus palpites.", color: "bg-coral" },
+  { id: "truth", name: "Verdade ou Mentira", emoji: "🤥", tagline: "Histórias da galera: será que aconteceu?", color: "bg-sky" },
 ];
 
 export const gameInfo = (id: string) => GAMES.find((g) => g.id === id) ?? GAMES[0]!;
