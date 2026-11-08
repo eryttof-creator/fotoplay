@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Moon, Sun, UserRound } from "lucide-react";
+import { Moon, Sun, UserRound, Volume2, VolumeX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSoundPreference } from "@/lib/sounds";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSession } from "@/lib/session";
 
@@ -37,11 +39,13 @@ export function ThemeToggle() {
 }
 
 export function TopBar({ right }: { right?: React.ReactNode }) {
+  const sound = useSoundPreference();
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4">
+    <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
       <Logo />
       <div className="flex items-center gap-2">
         {right}
+        <Button variant="popPlain" size="icon" className="h-10 w-10" aria-label={sound.on ? "Silenciar sons" : "Ativar sons"} title={sound.on ? "Silenciar sons" : "Ativar sons"} aria-pressed={sound.on} onClick={sound.toggle}>{sound.on ? <Volume2 /> : <VolumeX />}</Button>
         <Link to="/perfil" aria-label="Meu perfil" className="press flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink bg-card shadow-pop-sm">
           <UserRound className="h-5 w-5" />
         </Link>

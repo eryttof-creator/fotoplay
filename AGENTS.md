@@ -31,7 +31,9 @@ use the editor.
 
 ## Architecture
 - Game rules live in `src/lib/games/engine.ts` as pure functions and run only inside server functions (`src/lib/api/rooms.functions.ts`); clients never write room/game tables directly — keeps turns and hidden choices server-authoritative.
-- Hidden per-player data (RPS picks, memory deck, guess answers, who-am-I characters) goes in `room_secrets`, never in `rooms.state`, because room state is readable by every member.
-- Room writes use an optimistic `version` check with retry to handle simultaneous moves.
+- Hidden per-player data (picks, decks, answers, characters, Stop drafts and votes) goes in `room_secrets`, never in `rooms.state`, because room state is readable by every member.
+- Game moves use the service-only `commit_game_move` RPC with optimistic version retry to commit state and secrets atomically, preventing simultaneous submissions from losing hidden answers.
 - Players use anonymous auth; photos live in the private `photos` bucket under `{userId}/`, readable only by users who share a room (`shares_room`).
 - Server function modules must not live under `src/server/` (import-protection blocks client imports from there).
+- Party game views live in `PartyGames.tsx`; drawing sends bounded normalized strokes through server actions so reconnects retain the board.
+- Sound effects use gesture-unlocked browser Web Audio with a persisted mute preference, avoiding downloads and blocked autoplay.

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { applyAction, initGame, GameError, GAME_LIMITS, type GameId, type PlayerRef, type Secrets } from "@/lib/games/engine";
 
-const GAMES = ["tictactoe", "memory", "rps", "guess", "whoami", "reaction"] as const;
+const GAMES = ["tictactoe", "memory", "rps", "guess", "whoami", "reaction", "stop", "quiz", "draw", "truth"] as const;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
 
@@ -228,14 +228,12 @@ export const gameAction = createServerFn({ method: "POST" })
         if (e instanceof GameError) return { ok: false, error: e.message };
         throw e;
       }
-      const { data: updated } = await db
-        .from("rooms")
-        .update({ state: { ...res.state, playerIds: ids }, version: room.version + 1, updated_at: new Date().toISOString() })
-        .eq("id", room.id)
-        .eq("version", room.version)
-        .select("id");
-      if (!updated?.length) continue; // someone else moved first — retry with fresh state
-      await writeSecrets(db, room.id, res.secrets);
+      const { data: updated, error: commitError } = await db.rpc("commit_game_move", {
+        p_room_id: room.id, p_version: room.version,
+        p_state: { ...res.state, playerIds: ids }, p_secrets: res.secrets ?? {},
+      });
+      if (commitError) throw new Error("Não foi possível salvar a jogada. Tente novamente.");
+      if (!updated) continue; // state and private choices commit atomically, or retry
       if (res.finish) await recordFinish(db, room, ids, res.finish);
       return { ok: true, error: null };
     }
