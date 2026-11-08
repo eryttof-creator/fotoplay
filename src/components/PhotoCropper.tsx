@@ -17,7 +17,7 @@ export function PhotoCropper({ file, onDone, onCancel }: { file: File; onDone: (
   useEffect(() => {
     const u = URL.createObjectURL(file);
     setSrc(u);
-    loadImage(u).then(setImg);
+    loadImage(u).then(setImg).catch(() => {});
     return () => URL.revokeObjectURL(u);
   }, [file]);
 
