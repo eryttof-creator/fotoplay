@@ -216,7 +216,7 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
           const all = { ...ctx.secrets, ...secrets };
           s.votes = Object.fromEntries(ps.map((p) => [p.id, (all[`${p.id}:quiz`] as any)?.target]));
           const counts: Record<string, number> = zeroScores(ps);
-          Object.values(s.votes).forEach((id: any) => { counts[id] += 1; });
+          Object.values(s.votes).forEach((id: any) => { counts[id] = (counts[id] ?? 0) + 1; });
           s.leaders = topScorers(counts);
           ps.forEach((p) => { if (s.leaders.includes(s.votes[p.id])) s.scores[p.id] += 1; });
           s.phase = "result";
@@ -563,5 +563,5 @@ function revealStop(s: any, ps: PlayerRef[], all: Secrets, secrets?: Secrets): R
     s.scores[p.id] += s.points[p.id].reduce((a: number, b: number) => a + b, 0);
   });
   s.phase = "result";
-  return { state: s, secrets };
+  return { state: s, ...(secrets ? { secrets } : {}) };
 }
