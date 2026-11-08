@@ -28,3 +28,10 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Architecture
+- Game rules live in `src/lib/games/engine.ts` as pure functions and run only inside server functions (`src/lib/api/rooms.functions.ts`); clients never write room/game tables directly — keeps turns and hidden choices server-authoritative.
+- Hidden per-player data (RPS picks, memory deck, guess answers, who-am-I characters) goes in `room_secrets`, never in `rooms.state`, because room state is readable by every member.
+- Room writes use an optimistic `version` check with retry to handle simultaneous moves.
+- Players use anonymous auth; photos live in the private `photos` bucket under `{userId}/`, readable only by users who share a room (`shares_room`).
+- Server function modules must not live under `src/server/` (import-protection blocks client imports from there).

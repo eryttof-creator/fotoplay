@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as SalaCodeRouteImport } from './routes/sala.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalaCodeRoute = SalaCodeRouteImport.update({
+  id: '/sala/$code',
+  path: '/sala/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/perfil': typeof PerfilRoute
+  '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/perfil': typeof PerfilRoute
+  '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/perfil': typeof PerfilRoute
+  '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/perfil' | '/sala/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/perfil' | '/sala/$code'
+  id: '__root__' | '/' | '/perfil' | '/sala/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PerfilRoute: typeof PerfilRoute
+  SalaCodeRoute: typeof SalaCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sala/$code': {
+      id: '/sala/$code'
+      path: '/sala/$code'
+      fullPath: '/sala/$code'
+      preLoaderRoute: typeof SalaCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PerfilRoute: PerfilRoute,
+  SalaCodeRoute: SalaCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
