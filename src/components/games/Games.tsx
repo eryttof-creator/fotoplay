@@ -314,8 +314,25 @@ export function GuessPhoto({ state, players, me, act, offset }: GameProps) {
         )}
       </div>
       <div className="overflow-hidden rounded-3xl border-2 border-ink bg-muted shadow-pop">
-        {url ? <img src={url} alt="Foto para adivinhar" className="max-h-[50vh] w-full object-contain" /> : <div className="flex h-60 items-center justify-center"><Loader2 className="animate-spin" /></div>}
+        {url ? (
+          <img
+            src={url}
+            alt="Foto para adivinhar"
+            className="max-h-[50vh] w-full object-contain transition-[filter] duration-1000"
+            style={{
+              filter:
+                state.phase === "guessing" && !isPresenter
+                  ? `blur(${Math.round((Math.min(left, 60) / 60) * 18)}px)`
+                  : "none",
+            }}
+          />
+        ) : (
+          <div className="flex h-60 items-center justify-center"><Loader2 className="animate-spin" /></div>
+        )}
       </div>
+      {state.phase === "guessing" && !isPresenter && (
+        <p className="text-center text-xs text-muted-foreground">A foto vai ficando mais nítida com o tempo…</p>
+      )}
       {state.hint && <p className="text-center text-sm">💡 {state.hint}</p>}
       {state.phase === "reveal" ? (
         <div className="animate-pop-in rounded-3xl border-2 border-ink bg-accent p-4 text-center shadow-pop-sm">
