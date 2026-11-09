@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AmigosRouteImport } from './routes/amigos'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as ContatoRouteImport } from './routes/contato'
@@ -18,11 +19,17 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as JogadorUsernameRouteImport } from './routes/jogador.$username'
 import { Route as SalaCodeRouteImport } from './routes/sala.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AmigosRoute = AmigosRouteImport.update({
+  id: '/amigos',
+  path: '/amigos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -65,6 +72,11 @@ const TermosRoute = TermosRouteImport.update({
   path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JogadorUsernameRoute = JogadorUsernameRouteImport.update({
+  id: '/jogador/$username',
+  path: '/jogador/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalaCodeRoute = SalaCodeRouteImport.update({
   id: '/sala/$code',
   path: '/sala/$code',
@@ -73,6 +85,7 @@ const SalaCodeRoute = SalaCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/amigos': typeof AmigosRoute
   '/auth': typeof AuthRoute
   '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
@@ -81,10 +94,12 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
+  '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/amigos': typeof AmigosRoute
   '/auth': typeof AuthRoute
   '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
@@ -93,11 +108,13 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
+  '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/amigos': typeof AmigosRoute
   '/auth': typeof AuthRoute
   '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
@@ -106,12 +123,14 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
+  '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/amigos'
     | '/auth'
     | '/cadastro'
     | '/contato'
@@ -120,10 +139,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
+    | '/jogador/$username'
     | '/sala/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/amigos'
     | '/auth'
     | '/cadastro'
     | '/contato'
@@ -132,10 +153,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
+    | '/jogador/$username'
     | '/sala/$code'
   id:
     | '__root__'
     | '/'
+    | '/amigos'
     | '/auth'
     | '/cadastro'
     | '/contato'
@@ -144,11 +167,13 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
+    | '/jogador/$username'
     | '/sala/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AmigosRoute: typeof AmigosRoute
   AuthRoute: typeof AuthRoute
   CadastroRoute: typeof CadastroRoute
   ContatoRoute: typeof ContatoRoute
@@ -157,6 +182,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SobreRoute: typeof SobreRoute
   TermosRoute: typeof TermosRoute
+  JogadorUsernameRoute: typeof JogadorUsernameRoute
   SalaCodeRoute: typeof SalaCodeRoute
 }
 
@@ -167,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/amigos': {
+      id: '/amigos'
+      path: '/amigos'
+      fullPath: '/amigos'
+      preLoaderRoute: typeof AmigosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -225,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jogador/$username': {
+      id: '/jogador/$username'
+      path: '/jogador/$username'
+      fullPath: '/jogador/$username'
+      preLoaderRoute: typeof JogadorUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sala/$code': {
       id: '/sala/$code'
       path: '/sala/$code'
@@ -237,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AmigosRoute: AmigosRoute,
   AuthRoute: AuthRoute,
   CadastroRoute: CadastroRoute,
   ContatoRoute: ContatoRoute,
@@ -245,6 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SobreRoute: SobreRoute,
   TermosRoute: TermosRoute,
+  JogadorUsernameRoute: JogadorUsernameRoute,
   SalaCodeRoute: SalaCodeRoute,
 }
 export const routeTree = rootRouteImport
