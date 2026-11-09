@@ -1,0 +1,3 @@
+import type { ReactNode } from 'react';
+import { TopBar } from '@/components/Chrome';
+export function InfoPage({title,children}:{title:string;children:ReactNode}) {return <div className="min-h-[65vh] bg-hero"><TopBar/><main className="mx-auto max-w-3xl px-4 py-8 pb-16"><h1 className="mb-8 text-4xl font-extrabold">{title}</h1><div className="space-y-6 leading-relaxed [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-bold [&_p]:text-muted-foreground">{children}</div></main></div>;}

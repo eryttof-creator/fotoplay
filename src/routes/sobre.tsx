@@ -1,0 +1,5 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { InfoPage } from '@/components/InfoPage';
+import { pageHead } from '@/lib/metadata';
+export const Route=createFileRoute('/sobre')({head:()=>pageHead('Sobre o projeto','Foto Play, um projeto sem fins lucrativos idealizado por Erick Silva.'),component:About});
+function About(){return <InfoPage title="Sobre o Foto Play"><h2>Seus amigos, suas fotos, seus jogos!</h2><p>O Foto Play nasceu da ideia de transformar fotos de amigos em parte de jogos online compartilhados. A proposta é reunir pessoas em salas privadas para disputar minijogos em tempo real.</p><h2>Ideia original</h2><p>Projeto idealizado pelo adolescente Erick Silva, criado com auxílio de Inteligência Artificial (IA), sem fins lucrativos.</p><h2>Um projeto em evolução</h2><p>Os jogos e a experiência continuam sendo aprimorados. Sugestões e relatos de problemas são bem-vindos pelo contato oficial.</p></InfoPage>;}
