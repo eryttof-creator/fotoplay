@@ -11,6 +11,8 @@ export interface MyProfile {
   wins: number;
   losses: number;
   game_counts: Record<string, number>;
+  username?: string | null;
+  bio?: string;
 }
 
 export function useMyProfile() {

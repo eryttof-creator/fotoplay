@@ -5,6 +5,11 @@ import { TopBar } from "@/components/Chrome";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { useMyProfile } from "@/lib/profile";
 import { gameInfo } from "@/lib/games/catalog";
+import { useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { saveAccountProfile } from "@/lib/api/social.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -21,7 +26,11 @@ export const Route = createFileRoute("/perfil")({
 });
 
 function ProfilePage() {
-  const { profile, loading, save } = useMyProfile();
+  const { profile, loading, save, reload } = useMyProfile();
+  const { user } = useAuth();
+  const saveAccount = useServerFn(saveAccountProfile);
+  const [username, setUsername] = useState<string | undefined>();
+  const [bio, setBio] = useState<string | undefined>();
   const favorites = Object.entries(profile?.game_counts ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
   return (
     <div className="min-h-screen bg-hero">
@@ -34,10 +43,13 @@ function ProfilePage() {
             <section className="rounded-3xl border-2 border-ink bg-card p-6 shadow-pop">
               <h1 className="mb-5 text-3xl font-extrabold">Meu perfil</h1>
               <ProfileEditor
+                extra={user && !user.is_anonymous ? <><label className="space-y-2">@usuário<Input required minLength={3} maxLength={20} pattern="[a-z0-9_]{3,20}" value={username ?? profile.username ?? ""} onChange={e=>setUsername(e.target.value.toLowerCase())}/></label><label className="space-y-2">Sobre você<Input maxLength={160} value={bio ?? profile.bio ?? ""} onChange={e=>setBio(e.target.value)}/></label></> : undefined}
                 initial={{ nickname: profile.nickname, avatar: profile.avatar, photo_path: profile.photo_path }}
                 submitLabel="Salvar perfil"
                 onSubmit={async (p) => {
+                  if (user && !user.is_anonymous) await saveAccount({data:{username:username ?? profile.username ?? "",bio:bio ?? profile.bio ?? ""}});
                   await save(p);
+                  await reload();
                   toast.success("Perfil salvo!");
                 }}
               />
