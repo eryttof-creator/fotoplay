@@ -375,6 +375,32 @@ export type Database = {
           },
         ]
       }
+      tv_private: {
+        Row: {
+          data: Json
+          round: number
+          session_id: string
+        }
+        Insert: {
+          data: Json
+          round: number
+          session_id: string
+        }
+        Update: {
+          data?: Json
+          round?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_private_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tv_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tv_sessions: {
         Row: {
           code: string
