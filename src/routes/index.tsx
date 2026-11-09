@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, LogIn, Users, Sparkles, Shield, Camera, RefreshCw } from "lucide-react";
+import { Plus, LogIn, Users, Sparkles, Shield, Camera, RefreshCw, Tv } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,9 @@ export const Route = createFileRoute("/")({
 });
 
 const NEWS = [
-  { icon: Camera, title: "Recorte de fotos", text: "Ajuste zoom e enquadramento antes de entrar na partida." },
-  { icon: RefreshCw, title: "Reconexão automática", text: "Caiu a internet? Volte para a sala e continue de onde parou." },
-  { icon: Shield, title: "Fotos protegidas", text: "Só quem está na mesma sala consegue ver a sua foto." },
+  { icon: Tv, title: "Modo Televisão", text: "Use sua TV como segunda tela no Quiz da Galera e responda pelo celular!" },
+  { icon: Users, title: "Sistema de Amizades", text: "Crie seu @usuário exclusivo, adicione amigos e convide direto pras salas." },
+  { icon: Camera, title: "Fotos protegidas", text: "Só quem está na mesma sala consegue ver a sua foto de jogador." },
 ];
 
 function Home() {
@@ -69,7 +69,10 @@ function Home() {
                 <Plus /> CRIAR SALA
               </Button>
               <Button variant="popLime" size="xl" onClick={() => setMode("join")}>
-                <LogIn /> ENTRAR EM UMA SALA
+                <LogIn /> ENTRAR EM SALA
+              </Button>
+              <Button variant="popPlain" size="xl" onClick={() => navigate({ to: "/tv" })} className="bg-sun">
+                <Tv /> MODO TV
               </Button>
             </div>
             {lastRoom && (

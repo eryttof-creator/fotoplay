@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Share2, LogOut, Crown, Check, Loader2, RotateCcw, WifiOff, Pencil, History, Home } from "lucide-react";
+import { Copy, Share2, LogOut, Crown, Check, Loader2, RotateCcw, WifiOff, Pencil, History, Home, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TopBar, Confetti } from "@/components/Chrome";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ProfileEditor } from "@/components/ProfileEditor";
+import { InviteFriendsModal } from "@/components/InviteFriendsModal";
 import { TicTacToe, Memory, RockPaperScissors, Reaction, GuessPhoto, WhoAmI, type GameProps } from "@/components/games/Games";
 import { Stop, Quiz, Draw, Truth } from "@/components/games/PartyGames";
 import { playSound, unlockSound } from "@/lib/sounds";
@@ -103,6 +104,7 @@ function Center({ children }: { children: React.ReactNode }) {
 function RoomView({ roomId, me, onLeft, saveProfile }: { roomId: string; me: string; onLeft: () => void; saveProfile: (p: any) => Promise<void> }) {
   const { room, players, history, secrets, gone, connected, offset, refresh } = useRoom(roomId);
   const [editing, setEditing] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     if (room) localStorage.setItem("fp-last-room", room.code);
@@ -129,9 +131,14 @@ function RoomView({ roomId, me, onLeft, saveProfile }: { roomId: string; me: str
     <div className="min-h-screen bg-hero">
       <TopBar
         right={
-          <Button variant="popPlain" size="sm" className="h-10" onClick={leave}>
-            <LogOut /> Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="pop" size="sm" className="h-10" onClick={() => setInviting(true)}>
+              <Users className="h-4 w-4 mr-1" /> Convidar amigos
+            </Button>
+            <Button variant="popPlain" size="sm" className="h-10" onClick={leave}>
+              <LogOut /> Sair
+            </Button>
+          </div>
         }
       />
       {!connected && (
@@ -143,9 +150,16 @@ function RoomView({ roomId, me, onLeft, saveProfile }: { roomId: string; me: str
         {room.status === "playing" ? (
           <Match room={room} players={players} me={me} offset={offset} secrets={secrets} refresh={refresh} />
         ) : (
-          <Lobby room={room} players={players} me={me} history={history} onEdit={() => setEditing(true)} />
+          <Lobby room={room} players={players} me={me} history={history} onEdit={() => setEditing(true)} onInvite={() => setInviting(true)} />
         )}
       </main>
+      <InviteFriendsModal
+        open={inviting}
+        onOpenChange={setInviting}
+        roomId={roomId}
+        roomCode={room.code}
+        roomStatus={room.status}
+      />
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-h-[92vh] overflow-y-auto rounded-3xl border-2 border-ink">
           <DialogHeader><DialogTitle className="font-display text-2xl">Seu perfil na sala</DialogTitle></DialogHeader>
@@ -164,7 +178,7 @@ function RoomView({ roomId, me, onLeft, saveProfile }: { roomId: string; me: str
   );
 }
 
-function Lobby({ room, players, me, history, onEdit }: { room: RoomRow; players: PlayerRow[]; me: string; history: any[]; onEdit: () => void }) {
+function Lobby({ room, players, me, history, onEdit, onInvite }: { room: RoomRow; players: PlayerRow[]; me: string; history: any[]; onEdit: () => void; onInvite: () => void }) {
   const isHost = room.host_id === me;
   const meRow = players.find((p) => p.user_id === me)!;
   const lim = GAME_LIMITS[room.game as GameId];
@@ -188,7 +202,10 @@ function Lobby({ room, players, me, history, onEdit }: { room: RoomRow; players:
           <p className="text-sm text-muted-foreground">Código da sala</p>
           <p className="font-display text-5xl font-extrabold tracking-[0.25em]">{room.code}</p>
           {room.state?.aborted && <p className="mt-2 rounded-xl bg-sun px-3 py-1.5 text-sm font-medium">{room.state.aborted}</p>}
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="pop" size="sm" onClick={onInvite}>
+              <Users /> Convidar amigos
+            </Button>
             <Button variant="popLime" size="sm" onClick={() => { navigator.clipboard.writeText(room.code); toast.success("Código copiado!"); }}>
               <Copy /> Copiar código
             </Button>
@@ -200,7 +217,7 @@ function Lobby({ room, players, me, history, onEdit }: { room: RoomRow; players:
                 else { navigator.clipboard.writeText(url); toast.success("Link copiado!"); }
               }}
             >
-              <Share2 /> Convidar
+              <Share2 /> Convidar link
             </Button>
           </div>
         </section>
