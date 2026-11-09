@@ -53,6 +53,7 @@ export const sendInvite = createServerFn({method:'POST'}).middleware([requireSup
   const {data:friends}=await context.supabase.rpc('are_friends',{a:context.userId,b:data.userId}); if(!friends) throw new Error('Convide alguém da sua lista de amigos.');
   const db=await dbAdmin();
   const table=data.roomId?'rooms':'tv_sessions'; const id=data.roomId??data.sessionId;
+  if (!id) throw new Error('Sessão inválida.');
   const {data:game}=await db.from(table).select('id,code,host_id,status').eq('id',id).maybeSingle();
   if(!game || game.status!=='lobby') throw new Error('A sessão não está disponível para convites.');
   const allowed=data.roomId ? (await context.supabase.rpc('is_room_member',{_room:game.id,_user:context.userId})).data : (await context.supabase.rpc('is_tv_member',{s:game.id,u:context.userId})).data;
@@ -69,7 +70,9 @@ export const answerInvite = createServerFn({method:'POST'}).middleware([requireS
   const {data:invite}=await context.supabase.from('game_invites').select('*').eq('id',data.id).maybeSingle();
   if(!invite || invite.recipient_id!==context.userId || invite.status!=='pending') throw new Error('Convite indisponível.');
   const db=await dbAdmin();
-  const {data:target}=await db.from(invite.room_id?'rooms':'tv_sessions').select('code,status').eq('id',invite.room_id??invite.session_id).maybeSingle();
+  const targetId = invite.room_id ?? invite.session_id;
+  if (!targetId) throw new Error('Convite inválido.');
+  const {data:target}=await db.from(invite.room_id?'rooms':'tv_sessions').select('code,status').eq('id',targetId).maybeSingle();
   if(data.accept && (!target||target.status!=='lobby')) throw new Error('A partida já começou ou foi encerrada.');
   const {error}=await db.from('game_invites').update({status:data.accept?'accepted':'declined'}).eq('id',data.id); if(error) throw error;
   return {code:target?.code??null,tv:!!invite.session_id};

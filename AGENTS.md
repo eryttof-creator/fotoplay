@@ -37,3 +37,5 @@ use the editor.
 - Server function modules must not live under `src/server/` (import-protection blocks client imports from there).
 - Party game views live in `PartyGames.tsx`; drawing sends bounded normalized strokes through server actions so reconnects retain the board.
 - Sound effects use gesture-unlocked browser Web Audio with a persisted mute preference, avoiding downloads and blocked autoplay.
+- Shared authentication state is owned by AuthProvider in the root; email accounts coexist with existing visitors, and sign-out clears protected query caches.
+- Legal content uses dedicated public routes and the root Footer so credits remain consistent across pages.

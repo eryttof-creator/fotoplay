@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 let pending: Promise<string> | null = null;
 
+export function resetSession() { pending = null; }
+
 /** Every visitor plays with a lightweight anonymous account, created on first visit. */
 export function ensureSession(): Promise<string> {
   if (!pending) {
