@@ -1,0 +1,1 @@
+CREATE TABLE public.tv_private (session_id uuid NOT NULL REFERENCES public.tv_sessions(id) ON DELETE CASCADE, round integer NOT NULL, data jsonb NOT NULL, PRIMARY KEY(session_id,round)); GRANT ALL ON public.tv_private TO service_role; ALTER TABLE public.tv_private ENABLE ROW LEVEL SECURITY;

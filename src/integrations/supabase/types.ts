@@ -14,38 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
+      friendships: {
+        Row: {
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      game_invites: {
+        Row: {
+          created_at: string
+          id: string
+          recipient_id: string
+          room_id: string | null
+          sender_id: string
+          session_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipient_id: string
+          room_id?: string | null
+          sender_id: string
+          session_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          room_id?: string | null
+          sender_id?: string
+          session_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_invites_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_invites_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tv_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          read_at: string | null
+          target: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          read_at?: string | null
+          target?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          read_at?: string | null
+          target?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar: string
+          bio: string
           created_at: string
           game_counts: Json
           id: string
+          last_active: string | null
           losses: number
           matches: number
           nickname: string
           photo_path: string | null
+          username: string | null
           wins: number
         }
         Insert: {
           avatar?: string
+          bio?: string
           created_at?: string
           game_counts?: Json
           id: string
+          last_active?: string | null
           losses?: number
           matches?: number
           nickname?: string
           photo_path?: string | null
+          username?: string | null
           wins?: number
         }
         Update: {
           avatar?: string
+          bio?: string
           created_at?: string
           game_counts?: Json
           id?: string
+          last_active?: string | null
           losses?: number
           matches?: number
           nickname?: string
           photo_path?: string | null
+          username?: string | null
           wins?: number
         }
         Relationships: []
@@ -194,11 +305,144 @@ export type Database = {
         }
         Relationships: []
       }
+      tv_answers: {
+        Row: {
+          answer: Json
+          created_at: string
+          round: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: Json
+          created_at?: string
+          round: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: Json
+          created_at?: string
+          round?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_answers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tv_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_participants: {
+        Row: {
+          avatar: string
+          last_seen: string
+          nickname: string
+          photo_path: string | null
+          score: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          avatar?: string
+          last_seen?: string
+          nickname: string
+          photo_path?: string | null
+          score?: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          avatar?: string
+          last_seen?: string
+          nickname?: string
+          photo_path?: string | null
+          score?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tv_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_private: {
+        Row: {
+          data: Json
+          round: number
+          session_id: string
+        }
+        Insert: {
+          data: Json
+          round: number
+          session_id: string
+        }
+        Update: {
+          data?: Json
+          round?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_private_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "tv_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_sessions: {
+        Row: {
+          code: string
+          created_at: string
+          game: string
+          host_id: string
+          id: string
+          mode: string
+          state: Json
+          status: string
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          game?: string
+          host_id: string
+          id?: string
+          mode?: string
+          state?: Json
+          status?: string
+          version?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          game?: string
+          host_id?: string
+          id?: string
+          mode?: string
+          state?: Json
+          status?: string
+          version?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      are_friends: { Args: { a: string; b: string }; Returns: boolean }
       commit_game_move: {
         Args: {
           p_room_id: string
@@ -208,9 +452,34 @@ export type Database = {
         }
         Returns: boolean
       }
+      commit_tv_round: {
+        Args: {
+          new_state: Json
+          new_status: string
+          s: string
+          scores: Json
+          v: number
+        }
+        Returns: boolean
+      }
       is_room_member: {
         Args: { _room: string; _user: string }
         Returns: boolean
+      }
+      is_tv_member: { Args: { s: string; u: string }; Returns: boolean }
+      search_players: {
+        Args: { term: string }
+        Returns: {
+          avatar: string
+          bio: string
+          id: string
+          last_active: string
+          matches: number
+          nickname: string
+          photo_path: string
+          username: string
+          wins: number
+        }[]
       }
       shares_room: { Args: { _a: string; _b: string }; Returns: boolean }
     }

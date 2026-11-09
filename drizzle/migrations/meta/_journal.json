@@ -29,6 +29,20 @@
       "when": 1794099912933,
       "tag": "0003_atomic_party_game_moves",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794184108078,
+      "tag": "0004_foto_play_social_tv",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794184148423,
+      "tag": "0005_tv_private_rounds",
+      "breakpoints": true
     }
   ]
 }
