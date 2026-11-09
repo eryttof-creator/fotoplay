@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useSoundPreference } from "@/lib/sounds";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSession } from "@/lib/session";
+import { useAuth } from "@/lib/auth";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
@@ -40,11 +41,13 @@ export function ThemeToggle() {
 
 export function TopBar({ right }: { right?: React.ReactNode }) {
   const sound = useSoundPreference();
+  const { user, logout } = useAuth();
   return (
     <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
       <Logo />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {right}
+        {user && !user.is_anonymous ? <><Link to="/amigos" className="text-sm font-bold underline">Amigos</Link><Button variant="ghost" size="sm" onClick={logout}>Sair da conta</Button></> : <Link to="/auth" className="text-sm font-bold underline">Entrar</Link>}
         <Button variant="popPlain" size="icon" className="h-10 w-10" aria-label={sound.on ? "Silenciar sons" : "Ativar sons"} title={sound.on ? "Silenciar sons" : "Ativar sons"} aria-pressed={sound.on} onClick={sound.toggle}>{sound.on ? <Volume2 /> : <VolumeX />}</Button>
         <Link to="/perfil" aria-label="Meu perfil" className="press flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink bg-card shadow-pop-sm">
           <UserRound className="h-5 w-5" />
@@ -65,9 +68,9 @@ export function useOnlineCount() {
       if (!live) return;
       channel = supabase.channel("fotoplay-online", { config: { presence: { key: uid } } });
       channel
-        .on("presence", { event: "sync" }, () => setCount(Object.keys(channel!.presenceState()).length))
+        .on("presence", { event: "sync" }, () => { if (channel) setCount(Object.keys(channel.presenceState()).length); })
         .subscribe((s) => {
-          if (s === "SUBSCRIBED") channel!.track({ at: Date.now() });
+          if (s === "SUBSCRIBED") channel?.track({ at: Date.now() });
         });
     });
     return () => {

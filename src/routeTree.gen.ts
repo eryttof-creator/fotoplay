@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SalaCodeRouteImport } from './routes/sala.$code'
@@ -20,6 +23,16 @@ import { Route as SalaCodeRouteImport } from './routes/sala.$code'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContatoRoute = ContatoRouteImport.update({
@@ -35,6 +48,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SobreRoute = SobreRouteImport.update({
@@ -55,18 +73,24 @@ const SalaCodeRoute = SalaCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
   '/sala/$code': typeof SalaCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
   '/sala/$code': typeof SalaCodeRoute
@@ -74,9 +98,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/cadastro': typeof CadastroRoute
   '/contato': typeof ContatoRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
   '/sala/$code': typeof SalaCodeRoute
@@ -85,27 +112,36 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
+    | '/cadastro'
     | '/contato'
     | '/perfil'
     | '/privacidade'
+    | '/reset-password'
     | '/sobre'
     | '/termos'
     | '/sala/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
+    | '/cadastro'
     | '/contato'
     | '/perfil'
     | '/privacidade'
+    | '/reset-password'
     | '/sobre'
     | '/termos'
     | '/sala/$code'
   id:
     | '__root__'
     | '/'
+    | '/auth'
+    | '/cadastro'
     | '/contato'
     | '/perfil'
     | '/privacidade'
+    | '/reset-password'
     | '/sobre'
     | '/termos'
     | '/sala/$code'
@@ -113,9 +149,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  CadastroRoute: typeof CadastroRoute
   ContatoRoute: typeof ContatoRoute
   PerfilRoute: typeof PerfilRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SobreRoute: typeof SobreRoute
   TermosRoute: typeof TermosRoute
   SalaCodeRoute: typeof SalaCodeRoute
@@ -128,6 +167,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contato': {
@@ -149,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sobre': {
@@ -177,9 +237,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  CadastroRoute: CadastroRoute,
   ContatoRoute: ContatoRoute,
   PerfilRoute: PerfilRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SobreRoute: SobreRoute,
   TermosRoute: TermosRoute,
   SalaCodeRoute: SalaCodeRoute,
