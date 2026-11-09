@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { TopBar } from '@/components/Chrome';
 import { useAuth } from '@/lib/auth';
 export function AuthForm({signup=false}:{signup?:boolean}) {
- const {user,logout}=useAuth(); const navigate=useNavigate();
+ const {user,logout,loading}=useAuth(); const navigate=useNavigate();
  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [username,setUsername]=useState(''); const [nickname,setNickname]=useState(''); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(''); const [error,setError]=useState(''); const [forgot,setForgot]=useState(false);
  return <div className="min-h-[70vh] bg-hero"><TopBar/><main className="mx-auto max-w-md px-4 py-8 pb-16"><h1 className="mb-6 text-4xl font-extrabold">{forgot?'Recuperar senha':signup?'Criar conta':'Entrar na conta'}</h1>{user&&!user.is_anonymous?<div className="space-y-4"><p>Você já está conectado.</p><Button variant="popLime" onClick={()=>navigate({to:'/perfil'})}>Meu perfil</Button><Button variant="ghost" onClick={logout}>Sair da conta</Button></div>:<form className="flex flex-col gap-4" onSubmit={async e=>{
  e.preventDefault();setBusy(true);setError('');setMessage('');
@@ -25,8 +25,8 @@ export function AuthForm({signup=false}:{signup?:boolean}) {
  {!forgot&&<label className="space-y-2">Senha<Input type="password" required minLength={8} value={password} onChange={e=>setPassword(e.target.value)} autoComplete={signup?'new-password':'current-password'}/></label>}
  {signup&&!forgot&&<label className="flex items-start gap-2 text-sm"><input className="mt-1" type="checkbox" required/><span>Li e aceito os <Link className="underline" to="/termos">Termos de Uso</Link> e a <Link className="underline" to="/privacidade">Política de Privacidade</Link>.</span></label>}
  {error&&<p role="alert" className="text-destructive">{error}</p>}{message&&<p role="status" className="rounded-xl bg-accent p-3">{message}</p>}
- <Button variant="pop" size="xl" disabled={busy}>{busy?'Aguarde…':forgot?'Enviar link':signup?'Cadastrar':'Entrar'}</Button>
- {!signup&&<Button variant="ghost" type="button" onClick={()=>{setForgot(!forgot);setError('');setMessage('');}}>{forgot?'Voltar ao login':'Esqueci minha senha'}</Button>}
+ <Button variant="pop" size="xl" disabled={busy || loading}>{busy?'Aguarde…':forgot?'Enviar link':signup?'Cadastrar':'Entrar'}</Button>
+ {!signup&&<Button variant="ghost" type="button" disabled={loading} onClick={()=>{setForgot(!forgot);setError('');setMessage('');}}>{forgot?'Voltar ao login':'Esqueci minha senha'}</Button>}
  <Link className="text-center font-bold underline" to={signup?'/auth':'/cadastro'}>{signup?'Já tenho conta':'Criar uma conta'}</Link><Link className="text-center text-sm underline" to="/">Continuar como visitante</Link>
  </form>}</main></div>;
 }
