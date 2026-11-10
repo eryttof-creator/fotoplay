@@ -57,8 +57,8 @@ function generateQrMatrix(text: string): boolean[][] {
 
   function set(r: number, c: number, v: boolean) {
     if (r >= 0 && r < size && c >= 0 && c < size) {
-      grid[r][c] = v;
-      reserved[r][c] = true;
+      grid[r]![c] = v;
+      reserved[r]![c] = true;
     }
   }
 
@@ -103,11 +103,11 @@ function generateQrMatrix(text: string): boolean[][] {
 
   // 5. Reserve format info areas
   for (let i = 0; i < 9; i++) {
-    reserved[8][i] = true;
-    reserved[i][8] = true;
+    reserved[8]![i] = true;
+    reserved[i]![8] = true;
     if (i < 8) {
-      reserved[8][size - 1 - i] = true;
-      reserved[size - 1 - i][8] = true;
+      reserved[8]![size - 1 - i] = true;
+      reserved[size - 1 - i]![8] = true;
     }
   }
 
@@ -128,7 +128,7 @@ function generateQrMatrix(text: string): boolean[][] {
   let pIdx = 0;
   const maxBits = (size === 29 ? 70 : 100) * 8;
   while (bits.length < maxBits) {
-    const byte = padBytes[pIdx % 2];
+    const byte = padBytes[pIdx % 2]!;
     for (let b = 7; b >= 0; b--) bits.push((byte >> b) & 1);
     pIdx++;
   }
@@ -142,11 +142,11 @@ function generateQrMatrix(text: string): boolean[][] {
       const r = upward ? size - 1 - step : step;
       for (let colOffset = 0; colOffset < 2; colOffset++) {
         const col = c - colOffset;
-        if (!reserved[r][col]) {
+        if (!reserved[r]![col]) {
           const val = bitIdx < bits.length ? bits[bitIdx++] === 1 : false;
           // Apply standard Mask 0: (row + col) % 2 == 0
           const mask = (r + col) % 2 === 0;
-          grid[r][col] = mask ? !val : val;
+          grid[r]![col] = mask ? !val : val;
         }
       }
     }
@@ -155,14 +155,14 @@ function generateQrMatrix(text: string): boolean[][] {
 
   // Draw format info (Mask 0, Level M: 101010000010010 XOR 101010000010000)
   const formatBits = [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0];
-  for (let i = 0; i < 6; i++) grid[8][i] = formatBits[i] === 1;
-  grid[8][7] = formatBits[6] === 1;
-  grid[8][8] = formatBits[7] === 1;
-  grid[7][8] = formatBits[8] === 1;
-  for (let i = 0; i < 6; i++) grid[5 - i][8] = formatBits[9 + i] === 1;
+  for (let i = 0; i < 6; i++) grid[8]![i] = formatBits[i] === 1;
+  grid[8]![7] = formatBits[6] === 1;
+  grid[8]![8] = formatBits[7] === 1;
+  grid[7]![8] = formatBits[8] === 1;
+  for (let i = 0; i < 6; i++) grid[5 - i]![8] = formatBits[9 + i] === 1;
 
-  for (let i = 0; i < 8; i++) grid[size - 1 - i][8] = formatBits[i] === 1;
-  for (let i = 0; i < 7; i++) grid[8][size - 7 + i] = formatBits[8 + i] === 1;
+  for (let i = 0; i < 8; i++) grid[size - 1 - i]![8] = formatBits[i] === 1;
+  for (let i = 0; i < 7; i++) grid[8]![size - 7 + i] = formatBits[8 + i] === 1;
 
   return grid;
 }

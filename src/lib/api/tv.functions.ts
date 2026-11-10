@@ -181,7 +181,7 @@ export const startTvGame = createServerFn({ method: "POST" })
     if (!session) throw new Error("Sessão não encontrada.");
     if (session.host_id !== context.userId) throw new Error("Apenas o anfitrião pode iniciar a partida na TV.");
 
-    const firstQuestion = TV_QUIZ_QUESTIONS[0];
+    const firstQuestion = TV_QUIZ_QUESTIONS[0]!;
     const newState = {
       round: 1,
       totalRounds: 5,
@@ -363,6 +363,7 @@ export const nextTvRound = createServerFn({ method: "POST" })
     }
 
     const q = TV_QUIZ_QUESTIONS[nextRound - 1];
+    if (!q) throw new Error("Rodada inválida.");
     const newState = {
       round: nextRound,
       totalRounds: state.totalRounds ?? 5,

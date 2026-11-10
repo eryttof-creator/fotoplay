@@ -299,7 +299,7 @@ function TvScreenPage() {
             {/* 4 Alternatives (Full Screen Layout) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(state.options || []).map((opt: string, idx: number) => {
-                const color = OPTION_COLORS[idx % OPTION_COLORS.length];
+                const color = OPTION_COLORS[idx % OPTION_COLORS.length]!;
                 return (
                   <div
                     key={idx}
@@ -383,7 +383,7 @@ function TvScreenPage() {
                           isCorrect ? "bg-emerald-400 text-black" : "bg-slate-700 text-white"
                         }`}
                       >
-                        {OPTION_COLORS[idx].label}
+                        {OPTION_COLORS[idx % OPTION_COLORS.length]!.label}
                       </span>
                       {isCorrect && (
                         <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-black uppercase text-black">
