@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { socialData, sendInvite } from "@/lib/api/social.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { getLocalPreferences } from "@/lib/socialPreferences";
 
 interface InviteFriendsModalProps {
   open: boolean;
@@ -36,13 +35,14 @@ export function InviteFriendsModal({
   const [sending, setSending] = useState(false);
 
   const isLobby = roomStatus === "lobby";
-  const prefs = getLocalPreferences(user?.id);
+  const [prefs, setPrefs] = useState<{ favorites: string[] }>({ favorites: [] });
 
   const loadData = async () => {
     if (!user || user.is_anonymous) return;
     setLoading(true);
     try {
       const data = await fetchSocial();
+      setPrefs({ favorites: data.favorites ?? [] });
       // Friends are profiles whose friendship is accepted
       const acceptedFriendIds = new Set(
         (data.friendships || [])
@@ -51,12 +51,12 @@ export function InviteFriendsModal({
           .filter((id: string) => id !== user.id)
       );
 
-      const friendList = (data.profiles || []).filter((p: any) => acceptedFriendIds.has(p.id));
+      const friendList = (data.profiles || []).filter((p: any) => acceptedFriendIds.has(p.id) && !(data.blocked ?? []).includes(p.id));
 
       // Sort favorites first
       friendList.sort((a: any, b: any) => {
-        const aFav = prefs.favorites.includes(a.id);
-        const bFav = prefs.favorites.includes(b.id);
+        const aFav = (data.favorites ?? []).includes(a.id);
+        const bFav = (data.favorites ?? []).includes(b.id);
         if (aFav && !bFav) return -1;
         if (!aFav && bFav) return 1;
         return a.nickname.localeCompare(b.nickname);
