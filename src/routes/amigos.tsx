@@ -29,15 +29,11 @@ import {
   friendshipAction,
   answerInvite,
   sendInvite,
+  blockAction,
 } from "@/lib/api/social.functions";
 import { createRoom } from "@/lib/api/rooms.functions";
 import { pageHead } from "@/lib/metadata";
-import {
-  getLocalPreferences,
-  toggleFavorite,
-  blockUser,
-  unblockUser,
-} from "@/lib/socialPreferences";
+import { setFavorite } from "@/lib/socialPreferences";
 
 export const Route = createFileRoute("/amigos")({
   head: () =>
@@ -48,7 +44,7 @@ export const Route = createFileRoute("/amigos")({
   component: FriendsHub,
 });
 
-type Tab = "amigos" | "favoritos" | "solicitacoes" | "adicionar" | "bloqueados";
+type Tab = "amigos" | "favoritos" | "solicitacoes" | "convites" | "adicionar" | "bloqueados";
 
 function FriendsHub() {
   const { user, loading } = useAuth();
@@ -61,6 +57,7 @@ function FriendsHub() {
   const acceptInvite = useServerFn(answerInvite);
   const invite = useServerFn(sendInvite);
   const newRoom = useServerFn(createRoom);
+  const block = useServerFn(blockAction);
 
   const { data, error } = useQuery({
     queryKey: ["social", user?.id],
@@ -73,12 +70,9 @@ function FriendsHub() {
   const [term, setTerm] = useState("");
   const [results, setResults] = useState<Array<any>>([]);
   const [busy, setBusy] = useState(false);
-  const [prefs, setPrefs] = useState(() => getLocalPreferences(user?.id));
+  const prefs = { favorites: data?.favorites ?? [], blocked: data?.blocked ?? [] };
 
-  const refresh = () => {
-    queries.invalidateQueries({ queryKey: ["social"] });
-    setPrefs(getLocalPreferences(user?.id));
-  };
+  const refresh = () => queries.invalidateQueries({ queryKey: ["social"] });
 
   useEffect(() => {
     if (!account) return;
@@ -91,6 +85,12 @@ function FriendsHub() {
         void refresh();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "game_invites" }, () => {
+        void refresh();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "favorite_friends" }, () => {
+        void refresh();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks" }, () => {
         void refresh();
       })
       .subscribe();
@@ -133,6 +133,36 @@ function FriendsHub() {
   );
   const pendingTotal = pendingReceived.length;
 
+  // Game invites received and notices
+  const pendingInvites = (data?.invites || []).filter(
+    (i) => i.recipient_id === user?.id && i.status === "pending" && !prefs.blocked.includes(i.sender_id)
+  );
+  const notifications = data?.notifications || [];
+  const unreadNotices = notifications.filter((n) => !n.read_at).length;
+  const profileOf = (id: string | null) => (data?.profiles || []).find((p) => p.id === id);
+
+  const openInvitesTab = async () => {
+    setActiveTab("convites");
+    if (unreadNotices > 0 && user) {
+      await supabase
+        .from("notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .is("read_at", null);
+      void refresh();
+    }
+  };
+
+  const respondInvite = (id: string, accept: boolean) =>
+    run(async () => {
+      const r = await acceptInvite({ data: { id, accept } });
+      if (accept && r.code) {
+        toast.success("Convite aceito! Entrando…");
+        if (r.tv) await navigate({ to: "/tv/controle/$code", params: { code: r.code } });
+        else await navigate({ to: "/sala/$code", params: { code: r.code } });
+      } else if (!accept) toast("Convite recusado.");
+    });
+
   // Favorites
   const favoriteFriends = allFriends.filter((f) => prefs.favorites.includes(f.id));
 
@@ -141,25 +171,27 @@ function FriendsHub() {
 
   const handleToggleFavorite = async (friendId: string) => {
     if (!user) return;
-    const isNowFav = await toggleFavorite(user.id, friendId);
-    setPrefs(getLocalPreferences(user.id));
+    const isNowFav = !prefs.favorites.includes(friendId);
+    await run(() => setFavorite(user.id, friendId, isNowFav));
     toast.success(isNowFav ? "Adicionado aos favoritos ⭐" : "Removido dos favoritos");
   };
 
   const handleBlock = async (targetId: string, name: string) => {
     if (!user) return;
     if (confirm(`Deseja bloquear ${name}? Ele não poderá enviar solicitações nem convites.`)) {
-      await blockUser(user.id, targetId);
-      setPrefs(getLocalPreferences(user.id));
-      toast.success(`${name} foi bloqueado.`);
+      await run(async () => {
+        await block({ data: { userId: targetId, block: true } });
+        toast.success(`${name} foi bloqueado.`);
+      });
     }
   };
 
   const handleUnblock = async (targetId: string) => {
     if (!user) return;
-    await unblockUser(user.id, targetId);
-    setPrefs(getLocalPreferences(user.id));
-    toast.success("Usuário desbloqueado.");
+    await run(async () => {
+      await block({ data: { userId: targetId, block: false } });
+      toast.success("Usuário desbloqueado.");
+    });
   };
 
   const handleInviteToPlay = async (friendId: string) => {
@@ -230,6 +262,21 @@ function FriendsHub() {
           </div>
         ) : (
           <div className="space-y-6">
+            {error && (
+              <p role="alert" className="rounded-2xl border-2 border-ink bg-destructive/10 p-4 text-sm font-bold">
+                {error instanceof Error ? error.message : "Não foi possível carregar Amigos."}
+              </p>
+            )}
+            {data && !data.myUsername && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-sun/40 p-4 shadow-pop-sm">
+                <p className="text-sm font-bold">
+                  Escolha seu @usuário para que seus amigos consigam encontrar você.
+                </p>
+                <Button variant="pop" size="sm" onClick={() => navigate({ to: "/perfil" })}>
+                  Escolher @usuário
+                </Button>
+              </div>
+            )}
             {/* Tabs Bar */}
             <div className="flex flex-wrap gap-2 border-b-2 border-ink/20 pb-3">
               <button
@@ -264,6 +311,21 @@ function FriendsHub() {
                 {pendingTotal > 0 && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-black text-primary-foreground">
                     {pendingTotal}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => void openInvitesTab()}
+                className={`press relative flex items-center gap-2 rounded-2xl border-2 px-4 py-2 font-bold text-sm transition-all ${
+                  activeTab === "convites"
+                    ? "border-ink bg-primary text-primary-foreground shadow-pop-sm"
+                    : "border-ink/20 bg-card hover:border-ink"
+                }`}
+              >
+                <Gamepad2 className="h-4 w-4" /> Convites e avisos
+                {pendingInvites.length + unreadNotices > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-sun px-1 text-xs font-black text-ink">
+                    {pendingInvites.length + unreadNotices}
                   </span>
                 )}
               </button>
@@ -540,6 +602,71 @@ function FriendsHub() {
               </div>
             )}
 
+            {/* TAB: CONVITES E AVISOS */}
+            {activeTab === "convites" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="mb-3 text-xl font-extrabold">Convites para jogar ({pendingInvites.length})</h3>
+                  {pendingInvites.length === 0 ? (
+                    <p className="rounded-2xl border-2 border-dashed border-ink/30 p-6 text-center text-sm text-muted-foreground">
+                      Nenhum convite pendente agora.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingInvites.map((inv) => {
+                        const sender = profileOf(inv.sender_id);
+                        return (
+                          <div
+                            key={inv.id}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-card p-4 shadow-pop-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              {sender && <PlayerAvatar photoPath={sender.photo_path} avatar={sender.avatar} size={44} />}
+                              <div>
+                                <p className="font-bold">{sender?.nickname || "Um amigo"} convidou você</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {inv.session_id ? "Partida no Modo TV" : "Sala de jogos"} ·{" "}
+                                  {new Date(inv.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="popLime" size="sm" disabled={busy} onClick={() => respondInvite(inv.id, true)}>
+                                <Check className="mr-1 h-4 w-4" /> Entrar
+                              </Button>
+                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => respondInvite(inv.id, false)}>
+                                <X className="mr-1 h-4 w-4" /> Recusar
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="border-t border-border pt-4">
+                  <h3 className="mb-3 text-lg font-bold">Avisos recentes</h3>
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Você ainda não recebeu avisos.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {notifications.map((n) => (
+                        <li key={n.id} className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
+                          <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${n.read_at ? "text-muted-foreground" : "text-primary"}`} />
+                          <div className="flex-1">
+                            <p className={`text-sm ${n.read_at ? "" : "font-bold"}`}>{n.message}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* TAB: ADICIONAR AMIGO */}
             {activeTab === "adicionar" && (
               <div className="space-y-6">
@@ -627,7 +754,7 @@ function FriendsHub() {
                                   Aceitar
                                 </Button>
                               ) : (
-                                <span className="text-xs text-muted-foreground">Pendente</span>
+                                <span className="text-xs text-muted-foreground">Solicitação enviada</span>
                               )}
                             </div>
                           </div>
@@ -647,9 +774,8 @@ function FriendsHub() {
                     <Shield className="h-5 w-5 text-primary" /> Privacidade e Segurança
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    No Foto Play, seus dados como e-mail e senha são 100% confidenciais e nunca são
-                    exibidos a outros jogadores. Suas fotos de perfil são protegidas e visíveis apenas
-                    para quem joga na mesma sala ou amigos confirmados.
+                    Seu e-mail não é exibido para outros jogadores. Sua foto e seu status online
+                    aparecem apenas para amigos confirmados e para quem estiver na mesma sala que você.
                   </p>
                 </div>
 
@@ -658,7 +784,7 @@ function FriendsHub() {
                     <ShieldAlert className="h-4 w-4 text-destructive" /> Usuários Bloqueados ({prefs.blocked.length})
                   </h4>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Usuários bloqueados não podem enviar solicitações de amizade nem convidar você para partidas.
+                    Quem você bloqueia deixa de ser seu amigo, não encontra você na busca e não pode enviar solicitações nem convites.
                   </p>
 
                   {prefs.blocked.length === 0 ? (
