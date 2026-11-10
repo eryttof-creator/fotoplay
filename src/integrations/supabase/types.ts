@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      favorite_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           created_at: string
@@ -437,6 +455,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -482,6 +518,7 @@ export type Database = {
         }[]
       }
       shares_room: { Args: { _a: string; _b: string }; Returns: boolean }
+      username_available: { Args: { name: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
