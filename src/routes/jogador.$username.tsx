@@ -10,8 +10,7 @@ import { TopBar } from "@/components/Chrome";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Button } from "@/components/ui/button";
 import { pageHead } from "@/lib/metadata";
-import { friendshipAction, createRoom, sendInvite } from "@/lib/api/social.functions";
-import { getLocalPreferences, blockUser } from "@/lib/socialPreferences";
+import { friendshipAction, blockAction } from "@/lib/api/social.functions";
 
 export const Route = createFileRoute("/jogador/$username")({
   head: ({ params }) =>
@@ -27,7 +26,7 @@ function PlayerProfilePage() {
 
   const change = useServerFn(friendshipAction);
   const [busy, setBusy] = useState(false);
-  const prefs = getLocalPreferences(user?.id);
+  const block = useServerFn(blockAction);
 
   const { data: player, isLoading, error } = useQuery({
     queryKey: ["player", username, user?.id],
@@ -54,7 +53,14 @@ function PlayerProfilePage() {
   });
 
   const isMe = user?.id === player?.id;
-  const isBlocked = player ? prefs.blocked.includes(player.id) : false;
+  const { data: isBlocked = false } = useQuery({
+    queryKey: ["player-blocked", player?.id, user?.id],
+    enabled: !!user && !!player?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user!.id).eq("blocked_id", player!.id);
+      return (data ?? []).length > 0;
+    },
+  });
 
   const handleAction = async (action: any) => {
     if (!player) return;
@@ -74,9 +80,14 @@ function PlayerProfilePage() {
   const handleBlock = async () => {
     if (!user || !player) return;
     if (confirm(`Tem certeza que deseja bloquear @${player.username}?`)) {
-      await blockUser(user.id, player.id);
-      toast.success("Usuário bloqueado.");
-      navigate({ to: "/amigos" });
+      try {
+        await block({ data: { userId: player.id, block: true } });
+        queries.invalidateQueries({ queryKey: ["social"] });
+        toast.success("Usuário bloqueado.");
+        navigate({ to: "/amigos" });
+      } catch (e: any) {
+        toast.error(e?.message || "Não foi possível bloquear.");
+      }
     }
   };
 

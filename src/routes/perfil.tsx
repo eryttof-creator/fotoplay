@@ -10,7 +10,6 @@ import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { saveAccountProfile } from "@/lib/api/social.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { getLocalPreferences, setProfilePrivacy } from "@/lib/socialPreferences";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -32,16 +31,8 @@ function ProfilePage() {
   const saveAccount = useServerFn(saveAccountProfile);
   const [username, setUsername] = useState<string | undefined>();
   const [bio, setBio] = useState<string | undefined>();
-  const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      const prefs = getLocalPreferences(user.id);
-      setIsPrivate(prefs.isPrivate);
-    }
-  }, [user?.id]);
-
-  const favorites = Object.entries(profile?.game_counts ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const favorites = Object.entries(profile?.game_counts ?? {}).filter(([k, n]) => !k.startsWith("_") && typeof n === "number").sort((a, b) => b[1] - a[1]).slice(0, 3);
   return (
     <div className="min-h-screen bg-hero">
       <TopBar />
@@ -91,27 +82,10 @@ function ProfilePage() {
                           placeholder="Fã de jogos com a galera..."
                         />
                       </label>
-                      <div className="flex items-center justify-between rounded-2xl border-2 border-ink bg-muted/50 p-3">
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-primary" />
-                          <div>
-                            <p className="text-xs font-bold">Perfil Privado</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              Apenas amigos podem ver fotos e status.
-                            </p>
-                          </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isPrivate}
-                          onChange={async (e) => {
-                            const val = e.target.checked;
-                            setIsPrivate(val);
-                            if (user?.id) await setProfilePrivacy(user.id, val);
-                          }}
-                          className="h-5 w-5 rounded border-ink text-primary focus:ring-0"
-                        />
-                      </div>
+                      <p className="flex items-center gap-2 rounded-2xl border-2 border-ink bg-muted/50 p-3 text-xs">
+                        <Lock className="h-4 w-4 shrink-0 text-primary" />
+                        Sua foto e seu status online aparecem só para amigos confirmados e quem joga na mesma sala.
+                      </p>
                     </>
                   ) : undefined
                 }
@@ -125,7 +99,6 @@ function ProfilePage() {
                         bio: bio ?? profile.bio ?? "",
                       },
                     });
-                    if (user?.id) await setProfilePrivacy(user.id, isPrivate);
                   }
                   await save(p);
                   await reload();
