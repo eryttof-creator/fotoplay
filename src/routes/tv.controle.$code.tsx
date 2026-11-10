@@ -241,7 +241,7 @@ function TvControllerPage() {
                     Toque na sua alternativa:
                   </p>
                   {(state.options || []).map((opt: string, idx: number) => {
-                    const theme = OPTION_THEMES[idx % OPTION_THEMES.length];
+                    const theme = OPTION_THEMES[idx % OPTION_THEMES.length]!;
                     const isSelected = selectedOption === idx;
                     return (
                       <button
