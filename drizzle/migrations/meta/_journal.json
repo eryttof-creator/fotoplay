@@ -43,6 +43,13 @@
       "when": 1794184148423,
       "tag": "0005_tv_private_rounds",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794350430856,
+      "tag": "0006_social_blocks_favorites_invites",
+      "breakpoints": true
     }
   ]
 }

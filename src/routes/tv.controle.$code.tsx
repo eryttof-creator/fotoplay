@@ -56,7 +56,7 @@ function TvControllerPage() {
       const currentRound = (data.session.state as any)?.round ?? 1;
       if (data.answeredUserIds.includes(uid)) {
         setSubmittedRound(currentRound);
-      } else if (data.session.state?.phase === "question" && submittedRound !== currentRound) {
+      } else if ((data.session.state as any)?.phase === "question" && submittedRound !== currentRound) {
         setSelectedOption(null);
       }
 
@@ -241,7 +241,7 @@ function TvControllerPage() {
                     Toque na sua alternativa:
                   </p>
                   {(state.options || []).map((opt: string, idx: number) => {
-                    const theme = OPTION_THEMES[idx % OPTION_THEMES.length];
+                    const theme = OPTION_THEMES[idx % OPTION_THEMES.length]!;
                     const isSelected = selectedOption === idx;
                     return (
                       <button
