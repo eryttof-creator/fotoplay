@@ -44,7 +44,7 @@ function TvControllerPage() {
   const [busy, setBusy] = useState(false);
   const [joined, setJoined] = useState(false);
 
-  const fetchSession = async () => {
+  const fetchSession = async (silent = false) => {
     try {
       const data = await getTvSessionByCode({ data: { code } });
       setSession(data.session);
@@ -62,6 +62,7 @@ function TvControllerPage() {
 
       setLoading(false);
     } catch (e: any) {
+      if (silent) return;
       toast.error(e?.message || "Sessão não encontrada.");
       navigate({ to: "/tv" });
     }
@@ -70,6 +71,13 @@ function TvControllerPage() {
   useEffect(() => {
     if (uid) fetchSession();
   }, [uid, code]);
+
+  // Backup refresh: Smart TV browsers often drop live connections.
+  useEffect(() => {
+    if (!session?.id) return;
+    const t = setInterval(() => void fetchSession(true), 3000);
+    return () => clearInterval(t);
+  }, [session?.id, uid]);
 
   // Realtime subscription to tv_sessions and tv_participants
   useEffect(() => {

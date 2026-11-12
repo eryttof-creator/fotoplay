@@ -19,9 +19,9 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as TermosRouteImport } from './routes/termos'
-import { Route as TvRouteImport } from './routes/tv'
 import { Route as JogadorUsernameRouteImport } from './routes/jogador.$username'
 import { Route as SalaCodeRouteImport } from './routes/sala.$code'
+import { Route as TvIndexRouteImport } from './routes/tv.index'
 import { Route as TvCodeRouteImport } from './routes/tv.$code'
 import { Route as TvControleCodeRouteImport } from './routes/tv.controle.$code'
 
@@ -75,11 +75,6 @@ const TermosRoute = TermosRouteImport.update({
   path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TvRoute = TvRouteImport.update({
-  id: '/tv',
-  path: '/tv',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const JogadorUsernameRoute = JogadorUsernameRouteImport.update({
   id: '/jogador/$username',
   path: '/jogador/$username',
@@ -90,15 +85,20 @@ const SalaCodeRoute = SalaCodeRouteImport.update({
   path: '/sala/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TvIndexRoute = TvIndexRouteImport.update({
+  id: '/tv/',
+  path: '/tv/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TvCodeRoute = TvCodeRouteImport.update({
-  id: '/$code',
-  path: '/$code',
-  getParentRoute: () => TvRoute,
+  id: '/tv/$code',
+  path: '/tv/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const TvControleCodeRoute = TvControleCodeRouteImport.update({
-  id: '/controle/$code',
-  path: '/controle/$code',
-  getParentRoute: () => TvRoute,
+  id: '/tv/controle/$code',
+  path: '/tv/controle/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -112,10 +112,10 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
-  '/tv': typeof TvRouteWithChildren
   '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
   '/tv/$code': typeof TvCodeRoute
+  '/tv/': typeof TvIndexRoute
   '/tv/controle/$code': typeof TvControleCodeRoute
 }
 export interface FileRoutesByTo {
@@ -129,10 +129,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
-  '/tv': typeof TvRouteWithChildren
   '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
   '/tv/$code': typeof TvCodeRoute
+  '/tv': typeof TvIndexRoute
   '/tv/controle/$code': typeof TvControleCodeRoute
 }
 export interface FileRoutesById {
@@ -147,10 +147,10 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/termos': typeof TermosRoute
-  '/tv': typeof TvRouteWithChildren
   '/jogador/$username': typeof JogadorUsernameRoute
   '/sala/$code': typeof SalaCodeRoute
   '/tv/$code': typeof TvCodeRoute
+  '/tv/': typeof TvIndexRoute
   '/tv/controle/$code': typeof TvControleCodeRoute
 }
 export interface FileRouteTypes {
@@ -166,10 +166,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
-    | '/tv'
     | '/jogador/$username'
     | '/sala/$code'
     | '/tv/$code'
+    | '/tv/'
     | '/tv/controle/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -183,10 +183,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
-    | '/tv'
     | '/jogador/$username'
     | '/sala/$code'
     | '/tv/$code'
+    | '/tv'
     | '/tv/controle/$code'
   id:
     | '__root__'
@@ -200,10 +200,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sobre'
     | '/termos'
-    | '/tv'
     | '/jogador/$username'
     | '/sala/$code'
     | '/tv/$code'
+    | '/tv/'
     | '/tv/controle/$code'
   fileRoutesById: FileRoutesById
 }
@@ -218,9 +218,11 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SobreRoute: typeof SobreRoute
   TermosRoute: typeof TermosRoute
-  TvRoute: typeof TvRouteWithChildren
   JogadorUsernameRoute: typeof JogadorUsernameRoute
   SalaCodeRoute: typeof SalaCodeRoute
+  TvCodeRoute: typeof TvCodeRoute
+  TvIndexRoute: typeof TvIndexRoute
+  TvControleCodeRoute: typeof TvControleCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -295,13 +297,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tv': {
-      id: '/tv'
-      path: '/tv'
-      fullPath: '/tv'
-      preLoaderRoute: typeof TvRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/jogador/$username': {
       id: '/jogador/$username'
       path: '/jogador/$username'
@@ -316,34 +311,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tv/': {
+      id: '/tv/'
+      path: '/tv'
+      fullPath: '/tv/'
+      preLoaderRoute: typeof TvIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tv/$code': {
       id: '/tv/$code'
-      path: '/$code'
+      path: '/tv/$code'
       fullPath: '/tv/$code'
       preLoaderRoute: typeof TvCodeRouteImport
-      parentRoute: typeof TvRoute
+      parentRoute: typeof rootRouteImport
     }
     '/tv/controle/$code': {
       id: '/tv/controle/$code'
-      path: '/controle/$code'
+      path: '/tv/controle/$code'
       fullPath: '/tv/controle/$code'
       preLoaderRoute: typeof TvControleCodeRouteImport
-      parentRoute: typeof TvRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface TvRouteChildren {
-  TvCodeRoute: typeof TvCodeRoute
-  TvControleCodeRoute: typeof TvControleCodeRoute
-}
-
-const TvRouteChildren: TvRouteChildren = {
-  TvCodeRoute: TvCodeRoute,
-  TvControleCodeRoute: TvControleCodeRoute,
-}
-
-const TvRouteWithChildren = TvRoute._addFileChildren(TvRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -356,9 +346,11 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SobreRoute: SobreRoute,
   TermosRoute: TermosRoute,
-  TvRoute: TvRouteWithChildren,
   JogadorUsernameRoute: JogadorUsernameRoute,
   SalaCodeRoute: SalaCodeRoute,
+  TvCodeRoute: TvCodeRoute,
+  TvIndexRoute: TvIndexRoute,
+  TvControleCodeRoute: TvControleCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

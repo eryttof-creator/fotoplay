@@ -11,7 +11,7 @@ import { createTvSession, joinTvSession } from "@/lib/api/tv.functions";
 import { pageHead } from "@/lib/metadata";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/tv")({
+export const Route = createFileRoute("/tv/")({
   head: () =>
     pageHead(
       "Modo Televisão — FOTO PLAY",

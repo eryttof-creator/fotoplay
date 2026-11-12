@@ -47,7 +47,7 @@ function TvScreenPage() {
       ? `${window.location.origin}/tv/controle/${code}`
       : `https://fotoplay.lovable.app/tv/controle/${code}`;
 
-  const fetchState = async () => {
+  const fetchState = async (silent = false) => {
     try {
       const data = await getTvSessionByCode({ data: { code } });
       setSession(data.session);
@@ -55,6 +55,7 @@ function TvScreenPage() {
       setAnsweredIds(data.answeredUserIds);
       setLoading(false);
     } catch (e: any) {
+      if (silent) return;
       toast.error(e?.message || "Sessão não encontrada.");
       navigate({ to: "/tv" });
     }
@@ -63,6 +64,13 @@ function TvScreenPage() {
   useEffect(() => {
     fetchState();
   }, [code]);
+
+  // Backup refresh: Smart TV browsers often drop live connections.
+  useEffect(() => {
+    if (!session?.id) return;
+    const t = setInterval(() => void fetchState(true), 3000);
+    return () => clearInterval(t);
+  }, [session?.id]);
 
   // Realtime subscription to tv_sessions, tv_participants, and tv_answers
   useEffect(() => {
