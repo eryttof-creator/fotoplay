@@ -1,5 +1,5 @@
 // Pure, server-authoritative game rules. Every move is validated here before being saved.
-export type GameId = "tictactoe" | "memory" | "rps" | "guess" | "whoami" | "reaction" | "stop" | "quiz" | "draw" | "truth";
+export type GameId = "tictactoe" | "memory" | "rps" | "guess" | "whoami" | "reaction" | "stop" | "quiz" | "draw" | "truth" | "mime" | "hangman";
 
 export interface PlayerRef {
   id: string;
@@ -41,6 +41,8 @@ export const GAME_LIMITS: Record<GameId, { min: number; max: number }> = {
   quiz: { min: 2, max: 8 },
   draw: { min: 2, max: 8 },
   truth: { min: 2, max: 8 },
+  mime: { min: 2, max: 8 },
+  hangman: { min: 2, max: 8 },
 };
 
 export const normalize = (s: string) =>
@@ -94,6 +96,7 @@ export const CHARACTERS = [
 /* ---------------- Engine ---------------- */
 export const STOP_CATEGORIES = ["Nome", "Animal", "Fruta", "Cidade", "Objeto"];
 export const QUIZ_PROMPTS = ["Quem é mais provável de esquecer o próprio aniversário?", "Quem sobreviveria numa ilha deserta?", "Quem é mais provável de virar famoso?", "Quem contaria a melhor piada?", "Quem toparia uma viagem de última hora?"];
+export const MIME_PROMPTS = ["abacaxi", "cachorro", "jogar futebol", "escovar os dentes", "andar de bicicleta", "voar de avião", "tomar banho", "tocar violão", "dormir", "fazer bolo", "nadar", "lavar louça", "dançar samba", "morder limão", "procurar as chaves", "tirar uma selfie", "montar uma barraca", "cortar cabelo", "abrir um guarda-chuva", "perder o ônibus"];
 const stopLetter = () => "ABCDEFGHIJKLMNOPRSTUV"[Math.floor(Math.random() * 21)];
 const partyFinish = (s: any, ps: PlayerRef[], title: string): Result => {
   const winners = topScorers(s.scores);
@@ -116,6 +119,19 @@ export function initGame(game: GameId, ctx: Omit<Ctx, "state"> & { prev?: any })
       return { state: { round, game: 1, maxGames: 3, phase: "writing", letter: stopLetter(), endsAt: ctx.now + 90_000, submitted: {}, answers: {}, points: {}, scores: zeroScores(ps) } };
     case "quiz":
       return { state: { round, game: 1, phase: "voting", prompt: QUIZ_PROMPTS[0], voted: {}, votes: {}, leaders: [], scores: zeroScores(ps) } };
+    case "mime": {
+      const order = shuffle(ps.map((p) => p.id));
+      const presenter = order[0]!;
+      const word = MIME_PROMPTS[Math.floor(Math.random() * MIME_PROMPTS.length)]!;
+      return {
+        state: { round, turn: 0, order, presenter, phase: "acting", endsAt: ctx.now + 60_000, answer: null, feed: [], scores: zeroScores(ps) },
+        secrets: { [presenter + ":mime"]: { word } },
+      };
+    }
+    case "hangman": {
+      const order = shuffle(ps.map((p) => p.id));
+      return { state: { round, roundIndex: 0, turn: 0, order, presenter: order[0], phase: "prepare", pattern: "", wrong: 0, letters: [], answer: null, scores: zeroScores(ps) } };
+    }
     case "draw":
     case "truth": {
       const order = shuffle(ps.map((p) => p.id));
@@ -228,6 +244,76 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
         if (s.game >= QUIZ_PROMPTS.length) return partyFinish(s, ps, "Quiz da Galera");
         s.game++; s.prompt = QUIZ_PROMPTS[s.game - 1]; s.phase = "voting"; s.voted = {}; s.votes = {}; s.leaders = [];
         return { state: s, secrets: Object.fromEntries(ps.map((p) => [`${p.id}:quiz`, null])) };
+      }
+      return fail("Ação inválida.");
+    }
+    case "mime": {
+      const presenter = s.presenter === uid;
+      if (type === "guess") {
+        if (presenter || s.phase !== "acting" || ctx.now >= s.endsAt) fail("Você não pode dar um palpite agora.");
+        const text = String(payload?.text ?? "").trim().slice(0, 60);
+        if (!text) fail("Escreva seu palpite.");
+        const answer = (ctx.secrets[s.presenter + ":mime"] as any)?.word ?? "";
+        const ok = normalize(text) === normalize(answer);
+        s.feed.push({ uid, text: ok ? "acertou!" : text, ok });
+        s.feed = s.feed.slice(-30);
+        if (ok) { s.scores[uid] += 3; s.scores[s.presenter]++; s.phase = "reveal"; s.answer = answer; }
+        return { state: s };
+      }
+      if (type === "timeout") {
+        if (s.phase !== "acting" || ctx.now < s.endsAt) fail("Ainda há tempo.");
+        s.phase = "reveal"; s.answer = (ctx.secrets[s.presenter + ":mime"] as any)?.word ?? "";
+        return { state: s };
+      }
+      if (type === "next") {
+        if (s.phase !== "reveal") fail("A rodada ainda não acabou.");
+        s.turn++;
+        if (s.turn >= s.order.length) return partyFinish(s, ps, "Mímica");
+        s.presenter = s.order[s.turn]; s.phase = "acting"; s.endsAt = ctx.now + 60_000; s.answer = null; s.feed = [];
+        const word = MIME_PROMPTS[Math.floor(Math.random() * MIME_PROMPTS.length)]!;
+        const secrets: Secrets = Object.fromEntries(ps.map((p) => [p.id + ":mime", null]));
+        secrets[s.presenter + ":mime"] = { word };
+        return { state: s, secrets };
+      }
+      return fail("Ação inválida.");
+    }
+    case "hangman": {
+      const presenter = s.presenter === uid;
+      if (type === "present") {
+        if (!presenter || s.phase !== "prepare") fail("Só quem escolhe a palavra pode começar.");
+        const answer = normalize(String(payload?.word ?? "").slice(0, 40)).replace(/[^a-z ]/g, "").replace(/ +/g, " ").trim();
+        if (answer.replace(/ /g, "").length < 3) fail("Escolha uma palavra com pelo menos três letras.");
+        s.phase = "guessing"; s.pattern = answer.replace(/[a-z]/g, "_"); s.wrong = 0; s.letters = []; s.answer = null;
+        s.turn = (s.roundIndex + 1) % s.order.length;
+        return { state: s, secrets: { [uid + ":hangman"]: { word: answer } } };
+      }
+      if (type === "guessLetter") {
+        if (presenter || s.phase !== "guessing" || s.order[s.turn] !== uid) fail("Não é a sua vez de chutar.");
+        const letter = normalize(String(payload?.letter ?? ""));
+        if (!/^[a-z]$/.test(letter)) fail("Escolha uma única letra.");
+        if (s.letters.includes(letter)) fail("Essa letra já foi usada.");
+        const answer = (ctx.secrets[s.presenter + ":hangman"] as any)?.word ?? "";
+        if (!answer) fail("A palavra secreta não foi encontrada.");
+        s.letters.push(letter);
+        if (answer.includes(letter)) {
+          s.pattern = Array.from(answer).map((char: string, i: number) => char === letter ? letter : s.pattern[i]).join("");
+          s.scores[uid]++;
+        } else s.wrong++;
+        if (s.pattern === answer) { s.scores[uid] += 2; s.phase = "reveal"; s.answer = answer; }
+        else if (s.wrong >= 6) { s.phase = "reveal"; s.answer = answer; }
+        else {
+          s.turn = (s.turn + 1) % s.order.length;
+          if (s.order[s.turn] === s.presenter) s.turn = (s.turn + 1) % s.order.length;
+        }
+        return { state: s };
+      }
+      if (type === "next") {
+        if (s.phase !== "reveal") fail("A rodada ainda não acabou.");
+        s.roundIndex++;
+        if (s.roundIndex >= s.order.length) return partyFinish(s, ps, "Forca");
+        s.presenter = s.order[s.roundIndex]; s.turn = (s.roundIndex + 1) % s.order.length;
+        s.phase = "prepare"; s.pattern = ""; s.wrong = 0; s.letters = []; s.answer = null;
+        return { state: s, secrets: Object.fromEntries(ps.map((p) => [p.id + ":hangman", null])) };
       }
       return fail("Ação inválida.");
     }

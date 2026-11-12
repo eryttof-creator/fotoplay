@@ -9,7 +9,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { InviteFriendsModal } from "@/components/InviteFriendsModal";
 import { TicTacToe, Memory, RockPaperScissors, Reaction, GuessPhoto, WhoAmI, type GameProps } from "@/components/games/Games";
-import { Stop, Quiz, Draw, Truth } from "@/components/games/PartyGames";
+import { Stop, Quiz, Draw, Truth, Mime, Hangman } from "@/components/games/PartyGames";
 import { playSound, unlockSound } from "@/lib/sounds";
 import { useRef } from "react";
 import { GAMES, gameInfo, playersLabel } from "@/lib/games/catalog";
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/sala/$code")({
 
 const GAME_UI: Record<GameId, (p: GameProps) => React.ReactElement> = {
   tictactoe: TicTacToe, memory: Memory, rps: RockPaperScissors, guess: GuessPhoto, whoami: WhoAmI, reaction: Reaction,
-  stop: Stop, quiz: Quiz, draw: Draw, truth: Truth,
+  stop: Stop, quiz: Quiz, draw: Draw, truth: Truth, mime: Mime, hangman: Hangman,
 };
 const errMsg = (e: any) => {
   const m = String(e?.message ?? e);

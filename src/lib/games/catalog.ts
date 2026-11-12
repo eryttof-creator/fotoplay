@@ -16,6 +16,8 @@ export const GAMES: { id: GameId; name: string; emoji: string; tagline: string; 
   { id: "stop", name: "Stop (Adedonha)", emoji: "✍️", tagline: "Uma letra, cinco categorias e uma corrida.", color: "bg-lime" },
   { id: "quiz", name: "Quiz da Galera", emoji: "💬", tagline: "Quem é mais provável? A galera decide.", color: "bg-sun" },
   { id: "draw", name: "Desenhe e Adivinhe", emoji: "🎨", tagline: "Um desenha, os outros dão seus palpites.", color: "bg-coral" },
+  { id: "mime", name: "Mímica", emoji: "🎭", tagline: "Faça gestos. Os outros tentam adivinhar.", color: "bg-sun" },
+  { id: "hangman", name: "Forca", emoji: "🪢", tagline: "Adivinhe a palavra, letra por letra.", color: "bg-lime" },
   { id: "truth", name: "Verdade ou Mentira", emoji: "🤥", tagline: "Histórias da galera: será que aconteceu?", color: "bg-sky" },
 ];
 

@@ -97,3 +97,41 @@ export function Draw(p: GameProps) {
     </>}
   </div>;
 }
+export function Mime(p: GameProps) {
+  const { state: s, me, act } = p;
+  const left = useClock(p, s.phase === "acting" && !s.finished);
+  const [guess, setGuess] = useState("");
+  const mine = s.presenter === me;
+  useEffect(() => { setGuess(""); }, [s.turn]);
+  return <div className="mx-auto max-w-xl space-y-4 text-center">
+    <p className="font-bold">Rodada {s.turn + 1} / {s.order.length} · {name(p, s.presenter)} faz a mímica</p>
+    {s.phase === "acting" ? <>
+      <p className="rounded-2xl bg-sun p-3 font-display text-lg font-bold">{left}s</p>
+      {mine ? <div className="rounded-3xl border-2 border-ink bg-accent p-5 shadow-pop-sm"><p>Sua palavra:</p><p className="font-display text-2xl font-extrabold">{p.secrets[me]?.word ?? "Carregando…"}</p><p className="mt-2 text-sm">Faça gestos sem falar nem desenhar.</p></div> : <><p className="text-muted-foreground">{name(p, s.presenter)} está fazendo mímica…</p><form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (guess.trim() && await act("guess", { text: guess })) setGuess(""); }}><Input aria-label="Seu palpite" placeholder="O que está representando?" value={guess} maxLength={60} onChange={(e) => setGuess(e.target.value)} /><Button type="submit" variant="pop" aria-label="Enviar palpite"><Send /></Button></form></>}
+      <div className="flex max-h-40 flex-col-reverse gap-1 overflow-y-auto text-left text-sm">{[...s.feed].reverse().map((f: any, i: number) => <p key={i} className={cn("rounded-xl px-3 py-1.5", f.ok ? "bg-accent font-bold" : "bg-muted")}>{name(p, f.uid)}: {f.ok ? "acertou!" : f.text}</p>)}</div>
+    </> : <div className="space-y-3 rounded-3xl border-2 border-ink bg-accent p-5 text-center shadow-pop-sm"><p>A palavra era</p><p className="font-display text-2xl font-extrabold">{s.answer}</p><Next p={p} /></div>}
+  </div>;
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+export function Hangman(p: GameProps) {
+  const { state: s, me, act } = p;
+  const [word, setWord] = useState("");
+  const mine = s.presenter === me;
+  const myTurn = s.phase === "guessing" && !mine && s.order[s.turn] === me;
+  useEffect(() => { setWord(""); }, [s.roundIndex]);
+  if (s.phase === "prepare") return <div className="mx-auto max-w-xl space-y-4 text-center">
+    <p className="font-bold">Rodada {s.roundIndex + 1} / {s.order.length} · vez de {name(p, s.presenter)}</p>
+    {mine ? <form className="mx-auto flex max-w-sm gap-2" onSubmit={(e) => { e.preventDefault(); void act("present", { word }); }}><Input aria-label="Palavra secreta" placeholder="Escolha uma palavra" value={word} maxLength={40} onChange={(e) => setWord(e.target.value)} /><Button type="submit" variant="pop">Começar</Button></form> : <p className="text-muted-foreground">{name(p, s.presenter)} está escolhendo a palavra…</p>}
+  </div>;
+  if (s.phase === "reveal") return <div className="mx-auto max-w-xl space-y-4 text-center">
+    <p className="font-bold">A palavra era</p><p className="font-display text-3xl font-extrabold">{s.answer}</p><p>{s.wrong} erro(s) de 6</p><Next p={p} />
+  </div>;
+  return <div className="mx-auto max-w-xl space-y-4 text-center">
+    <p className="font-bold">Forca · rodada {s.roundIndex + 1} / {s.order.length}</p>
+    <p className="break-all font-mono text-3xl font-extrabold tracking-[0.25em]" aria-label="Palavra oculta">{s.pattern.replace(/_/g, "＿")}</p>
+    <p>Erros: {s.wrong} / 6 · Letras: {s.letters.length ? s.letters.map((v: string) => v.toUpperCase()).join(" ") : "nenhuma"}</p>
+    {mine ? <p className="rounded-xl bg-accent p-3">Sua palavra: <b>{p.secrets[me]?.word ?? "…"}</b></p> : <p>{myTurn ? "Sua vez: escolha uma letra." : "Vez de " + name(p, s.order[s.turn])}</p>}
+    <div className="grid grid-cols-7 gap-2">{alphabet.map((letter) => <Button key={letter} type="button" variant={s.letters.includes(letter) ? "outline" : "popPlain"} size="sm" disabled={!myTurn || s.letters.includes(letter)} onClick={() => void act("guessLetter", { letter })}>{letter.toUpperCase()}</Button>)}</div>
+  </div>;
+}
