@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { heartbeat } from "@/lib/api/rooms.functions";
+import { getOwnGameSecret, heartbeat } from "@/lib/api/rooms.functions";
 
 export interface RoomRow {
   id: string;
@@ -44,11 +44,12 @@ export function useRoom(roomId: string | null) {
 
   const refresh = useCallback(async () => {
     if (!roomId) return;
-    const [r, p, h, s] = await Promise.all([
+    const [r, p, h, s, own] = await Promise.all([
       supabase.from("rooms").select("*").eq("id", roomId).maybeSingle(),
       supabase.from("room_players").select("*").eq("room_id", roomId).order("joined_at"),
       supabase.from("room_history").select("*").eq("room_id", roomId).order("created_at", { ascending: false }).limit(20),
       supabase.from("room_secrets").select("user_id,data").eq("room_id", roomId).eq("kind", "whoami"),
+      getOwnGameSecret({ data: { roomId } }).catch(() => null),
     ]);
     if (r.error) return;
     if (!r.data) {
@@ -58,7 +59,10 @@ export function useRoom(roomId: string | null) {
     setRoom(r.data as RoomRow);
     setPlayers((p.data ?? []) as PlayerRow[]);
     setHistory((h.data ?? []) as HistoryRow[]);
-    setSecrets(Object.fromEntries((s.data ?? []).map((x: any) => [x.user_id, x.data])));
+    const secretMap = Object.fromEntries((s.data ?? []).map((x: any) => [x.user_id, x.data]));
+    const ownSecret = own?.secrets?.[r.data.game];
+    if (ownSecret) secretMap[own.userId] = ownSecret;
+    setSecrets(secretMap);
   }, [roomId]);
 
   const schedule = useCallback(() => {

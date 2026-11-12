@@ -82,11 +82,45 @@ describe("Desenhe e Adivinhe", () => {
   });
 });
 describe("Party membership", () => {
-  for (const game of ["stop", "quiz", "draw", "truth"] as const) {
+  for (const game of ["stop", "quiz", "draw", "truth", "mime", "hangman"] as const) {
     it(`${game} requires 2–8 players and rejects outsiders`, () => {
       expect(() => initGame(game, { players: players.slice(0, 1), secrets: {}, now: 0 })).toThrow();
       expect(() => initGame(game, { players: Array(9).fill(players[0]), secrets: {}, now: 0 })).toThrow();
       const m = match(game); expect(() => m.act("outsider", "next")).toThrow("Você não está nesta partida");
     });
   }
+});
+describe("Mímica", () => {
+  it("keeps the prompt private and scores a correct guess", () => {
+    const m = match("mime"); const presenter = m.state.presenter; const guesser = players.find((p) => p.id !== presenter)!.id;
+    const word = (m.secrets[presenter + ":mime"] as any).word;
+    expect(m.state.answer).toBeNull();
+    m.act(guesser, "guess", { text: word });
+    expect(m.state.answer).toBe(word); expect(m.state.scores[guesser]).toBe(3); expect(m.state.scores[presenter]).toBe(1);
+  });
+  it("ends on timeout and gives the next player a private prompt", () => {
+    const m = match("mime"); const oldPresenter = m.state.presenter;
+    m.act(oldPresenter, "timeout", {}, 61_001); expect(m.state.phase).toBe("reveal");
+    m.act(oldPresenter, "next"); expect(m.state.presenter).not.toBe(oldPresenter); expect(m.state.phase).toBe("acting");
+    expect(m.secrets[m.state.presenter + ":mime"]).toBeTruthy();
+  });
+});
+
+describe("Forca", () => {
+  it("keeps the word hidden and awards points for correct letters", () => {
+    const m = match("hangman"); const presenter = m.state.presenter; const guesser = players.find((p) => p.id !== presenter)!.id;
+    m.act(presenter, "present", { word: "casa" });
+    expect(m.state.pattern).toBe("____"); expect(m.state.answer).toBeNull();
+    expect(() => m.act(presenter, "guessLetter", { letter: "c" })).toThrow();
+    m.act(guesser, "guessLetter", { letter: "c" }); expect(m.state.pattern).toBe("c___");
+    m.act(guesser, "guessLetter", { letter: "a" }); expect(m.state.pattern).toBe("ca_a");
+    m.act(guesser, "guessLetter", { letter: "s" });
+    expect(m.state.phase).toBe("reveal"); expect(m.state.answer).toBe("casa"); expect(m.state.scores[guesser]).toBe(5);
+  });
+  it("reveals the word after six incorrect letters", () => {
+    const m = match("hangman"); const presenter = m.state.presenter; const guesser = players.find((p) => p.id !== presenter)!.id;
+    m.act(presenter, "present", { word: "casa" });
+    for (const letter of ["b", "d", "e", "f", "g", "h"]) m.act(guesser, "guessLetter", { letter });
+    expect(m.state.wrong).toBe(6); expect(m.state.phase).toBe("reveal"); expect(m.state.answer).toBe("casa");
+  });
 });

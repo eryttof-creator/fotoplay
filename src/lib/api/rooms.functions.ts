@@ -11,7 +11,7 @@ import {
 } from "@/lib/games/bots";
 import { gameInfo } from "@/lib/games/catalog";
 
-const GAMES = ["tictactoe", "memory", "rps", "guess", "whoami", "reaction", "stop", "quiz", "draw", "truth"] as const;
+const GAMES = ["tictactoe", "memory", "rps", "guess", "whoami", "reaction", "stop", "quiz", "draw", "truth", "mime", "hangman"] as const;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
 
@@ -124,6 +124,27 @@ export const getRoomByCode = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: room } = await context.supabase.from("rooms").select("id").eq("code", data.code).maybeSingle();
     return { roomId: room?.id ?? null, serverNow: Date.now() };
+  });
+
+/** Returns only the authenticated player's private word for the active party game. */
+export const getOwnGameSecret = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const db = await admin();
+    const { players } = await loadRoom(db, data.roomId);
+    if (!players.some((p) => p.user_id === context.userId)) throw new Error("Você não está nesta sala.");
+    const { data: rows, error } = await db
+      .from("room_secrets")
+      .select("kind,data")
+      .eq("room_id", data.roomId)
+      .eq("user_id", context.userId)
+      .in("kind", ["mime", "hangman"]);
+    if (error) throw new Error("Não foi possível carregar sua palavra secreta.");
+    return {
+      userId: context.userId,
+      secrets: Object.fromEntries((rows ?? []).map((row: any) => [row.kind, row.data])),
+    };
   });
 
 export const updateMe = createServerFn({ method: "POST" })
