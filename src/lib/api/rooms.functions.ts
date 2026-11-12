@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { applyAction, initGame, GameError, GAME_LIMITS, type GameId, type PlayerRef, type Secrets } from "@/lib/games/engine";
-import { BOT_AVATAR, BOT_GAMES, BOT_NAMES, botMove } from "@/lib/games/bots";
+import {
+  BOT_AVATAR,
+  BOT_GAMES,
+  BOT_NAMES,
+  botIdsToRemove,
+  botMove,
+} from "@/lib/games/bots";
 import { gameInfo } from "@/lib/games/catalog";
 
 const GAMES = ["tictactoe", "memory", "rps", "guess", "whoami", "reaction", "stop", "quiz", "draw", "truth"] as const;
@@ -177,10 +183,24 @@ export const selectGame = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ roomId: z.string().uuid(), game: z.enum(GAMES) }).parse(d))
   .handler(async ({ data, context }) => {
     const db = await admin();
-    const { room } = await loadRoom(db, data.roomId);
+    const { room, players } = await loadRoom(db, data.roomId);
     if (room.host_id !== context.userId) throw new Error("Só o anfitrião escolhe o jogo.");
     if (room.status !== "lobby") throw new Error("Termine a partida primeiro.");
-    await db.from("rooms").update({ game: data.game, version: room.version + 1 }).eq("id", room.id);
+    const botsToRemove = botIdsToRemove(data.game, players);
+    if (botsToRemove.length) {
+      const { error } = await db
+        .from("room_players")
+        .delete()
+        .eq("room_id", room.id)
+        .eq("is_bot", true)
+        .in("user_id", botsToRemove);
+      if (error) throw new Error("Não foi possível ajustar os robôs para este jogo.");
+    }
+    const { error } = await db
+      .from("rooms")
+      .update({ game: data.game, version: room.version + 1 })
+      .eq("id", room.id);
+    if (error) throw new Error("Não foi possível escolher o jogo.");
     return { ok: true };
   });
 
