@@ -1,9 +1,19 @@
 // Robot players: pure move pickers used only by the server (see botStep in rooms.functions.ts).
-import { tttWinner, type GameId, type Secrets } from "./engine";
+import { GAME_LIMITS, tttWinner, type GameId, type Secrets } from "./engine";
 
 export const BOT_GAMES: GameId[] = ["tictactoe", "memory", "rps", "reaction", "quiz"];
 export const BOT_NAMES = ["Robô Zeca", "Robô Bia", "Robô Tico", "Robô Lulu", "Robô Dudu", "Robô Nina", "Robô Beto"];
 export const BOT_AVATAR = "bot";
+
+/** Returns excess bot IDs to remove so the selected game stays within its player limit. */
+export function botIdsToRemove(game: GameId, players: { user_id: string; is_bot?: boolean }[]): string[] {
+  const excess = players.length - GAME_LIMITS[game].max;
+  if (excess <= 0) return [];
+
+  const botIds = players.filter((player) => player.is_bot).map((player) => player.user_id);
+  if (botIds.length < excess) return [];
+  return botIds.slice(-excess);
+}
 
 export interface BotMove {
   type: string;

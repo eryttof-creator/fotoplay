@@ -27,6 +27,7 @@ export const Route = createFileRoute("/")({
 
 const NEWS = [
   { icon: Tv, title: "Modo Televisão", text: "Use sua TV como segunda tela no Quiz da Galera e responda pelo celular!" },
+  { icon: Bot, title: "Mais robôs no modo solo", text: "Agora as partidas solo começam com 3 robôs, respeitando o limite de cada jogo." },
   { icon: Users, title: "Sistema de Amizades", text: "Crie seu @usuário exclusivo, adicione amigos e convide direto pras salas." },
   { icon: Camera, title: "Fotos protegidas", text: "Só quem está na mesma sala consegue ver a sua foto de jogador." },
 ];
@@ -134,7 +135,9 @@ function Home() {
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">{mode === "create" ? "Criar sala" : mode === "solo" ? "Jogar contra robôs" : "Entrar em uma sala"}</DialogTitle>
             <DialogDescription>
-              {mode === "solo" ? "Você entra numa sala com um robô. Lá dá para adicionar mais robôs e escolher o jogo." : "Escolha seu apelido e sua foto — ela vai virar sua peça nos jogos."}
+              {mode === "solo"
+                ? "Você entra numa sala com três robôs. Ao escolher um jogo com limite menor, os robôs se ajustam automaticamente."
+                : "Escolha seu apelido e sua foto — ela vai virar sua peça nos jogos."}
             </DialogDescription>
           </DialogHeader>
           {profile && mode && (
@@ -158,7 +161,10 @@ function Home() {
               onSubmit={async (p) => {
                 if (mode === "join" && code.length !== 6) throw new Error("O código da sala tem 6 caracteres.");
                 await save(p);
-                const res = mode !== "join" ? await createRoom({ data: { ...p, bots: mode === "solo" ? 1 : 0 } }) : await joinRoom({ data: { ...p, code } });
+                const res =
+                  mode !== "join"
+                    ? await createRoom({ data: { ...p, bots: mode === "solo" ? 3 : 0 } })
+                    : await joinRoom({ data: { ...p, code } });
                 navigate({ to: "/sala/$code", params: { code: res.code } });
               }}
             />
