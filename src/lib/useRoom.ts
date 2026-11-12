@@ -21,6 +21,7 @@ export interface PlayerRow {
   wins: number;
   joined_at: string;
   last_seen: string;
+  is_bot?: boolean;
 }
 export interface HistoryRow {
   id: string;
@@ -110,4 +111,4 @@ export function useRoom(roomId: string | null) {
   return { room, players, history, secrets, gone, connected, offset, refresh };
 }
 
-export const isOnline = (p: PlayerRow) => Date.now() - new Date(p.last_seen).getTime() < 50_000;
+export const isOnline = (p: PlayerRow) => !!p.is_bot || Date.now() - new Date(p.last_seen).getTime() < 50_000;

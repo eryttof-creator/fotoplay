@@ -21,7 +21,8 @@ export function PlayerAvatar({
 }) {
   const signed = useSignedUrl(previewUrl ? null : photoPath);
   const url = previewUrl ?? signed;
-  const key = avatar && AVATARS[avatar] ? avatar : "a1";
+  const bot = avatar === "bot";
+  const key = bot ? "bot" : avatar && AVATARS[avatar] ? avatar : "a1";
   return (
     <div
       className={cn(
@@ -37,7 +38,7 @@ export function PlayerAvatar({
         <img src={url} alt="" className="h-full w-full object-cover" draggable={false} />
       ) : (
         <span className="flex h-full w-full items-center justify-center" style={{ fontSize: size * 0.55 }}>
-          {AVATARS[key]}
+          {bot ? "🤖" : AVATARS[key]}
         </span>
       )}
     </div>

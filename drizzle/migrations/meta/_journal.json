@@ -50,6 +50,13 @@
       "when": 1794350430856,
       "tag": "0006_social_blocks_favorites_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794451001897,
+      "tag": "0007_room_bots",
+      "breakpoints": true
     }
   ]
 }

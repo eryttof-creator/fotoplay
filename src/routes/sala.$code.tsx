@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Share2, LogOut, Crown, Check, Loader2, RotateCcw, WifiOff, Pencil, History, Home, Users } from "lucide-react";
+import { Copy, Share2, LogOut, Crown, Check, Loader2, RotateCcw, WifiOff, Pencil, History, Home, Users, Bot, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,7 +17,8 @@ import { GAME_LIMITS, type GameId } from "@/lib/games/engine";
 import { useUserId } from "@/lib/session";
 import { useMyProfile } from "@/lib/profile";
 import { useRoom, isOnline, type PlayerRow, type RoomRow } from "@/lib/useRoom";
-import { gameAction, getRoomByCode, joinRoom, leaveRoom, rematch, selectGame, setReady, startGame, updateMe } from "@/lib/api/rooms.functions";
+import { BOT_GAMES } from "@/lib/games/bots";
+import { addBot, botStep, removeBot, gameAction, getRoomByCode, joinRoom, leaveRoom, rematch, selectGame, setReady, startGame, updateMe } from "@/lib/api/rooms.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/sala/$code")({
@@ -186,9 +187,11 @@ function Lobby({ room, players, me, history, onEdit, onInvite }: { room: RoomRow
   const countOk = players.length >= lim.min && players.length <= lim.max;
   const [busy, setBusy] = useState(false);
   const url = typeof window !== "undefined" ? `${window.location.origin}/sala/${room.code}` : "";
+  const hasBots = players.some((p) => p.is_bot);
+  const botsOk = !hasBots || BOT_GAMES.includes(room.game as GameId);
   const reason = !countOk
-    ? players.length < lim.min ? `Precisa de ${lim.min - players.length} jogador(es) a mais` : `Máximo de ${lim.max} jogadores neste jogo`
-    : !allReady ? "Esperando todos ficarem prontos" : null;
+    ? players.length < lim.min ? `Precisa de ${lim.min - players.length} jogador(es) a mais — adicione um robô!` : `Máximo de ${lim.max} jogadores neste jogo`
+    : !botsOk ? "Os robôs não sabem jogar este jogo. Escolha um com 🤖." : !allReady ? "Esperando todos ficarem prontos" : null;
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -237,16 +240,27 @@ function Lobby({ room, players, me, history, onEdit, onInvite }: { room: RoomRow
                 <div className="flex-1">
                   <p className="flex items-center gap-1 font-bold">
                     {p.nickname} {p.user_id === me && <span className="text-xs font-normal text-muted-foreground">(você)</span>}
+                    {p.is_bot && <span className="rounded-full bg-card px-2 text-xs font-medium">robô</span>}
                     {p.user_id === room.host_id && <Crown className="h-4 w-4 text-primary" aria-label="Anfitrião" />}
                   </p>
                   <p className="text-xs text-muted-foreground">{p.wins} vitória(s) na sala{!isOnline(p) && " · offline"}</p>
                 </div>
+                {p.is_bot && isHost && (
+                  <Button variant="ghost" size="icon" aria-label={`Remover ${p.nickname}`} disabled={busy} onClick={() => run(() => removeBot({ data: { roomId: room.id, botId: p.user_id } }))}>
+                    <X />
+                  </Button>
+                )}
                 <span className={cn("rounded-full border-2 border-ink px-2.5 py-0.5 text-xs font-bold", p.ready ? "bg-accent" : "bg-card")}>
                   {p.ready ? "Pronto" : "Aguardando"}
                 </span>
               </li>
             ))}
           </ul>
+          {isHost && players.length < 8 && (
+            <Button variant="popPlain" size="sm" className="mt-3 w-full" disabled={busy} onClick={() => run(() => addBot({ data: { roomId: room.id } }))}>
+              <Bot /> Adicionar robô
+            </Button>
+          )}
           <Button
             variant={meRow.ready ? "popPlain" : "popLime"}
             size="xl"
@@ -262,7 +276,7 @@ function Lobby({ room, players, me, history, onEdit, onInvite }: { room: RoomRow
       <div className="flex flex-col gap-6">
         <section className="rounded-3xl border-2 border-ink bg-card p-5 shadow-pop">
           <h2 className="mb-1 text-xl font-bold">Escolha o jogo</h2>
-          <p className="mb-4 text-sm text-muted-foreground">{isHost ? "Você é o anfitrião: escolha e inicie." : "O anfitrião escolhe o jogo."}</p>
+          <p className="mb-4 text-sm text-muted-foreground">{isHost ? "Você é o anfitrião: escolha e inicie." : "O anfitrião escolhe o jogo."} Jogos com 🤖 aceitam robôs.</p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {GAMES.map((g) => (
               <button
@@ -277,7 +291,7 @@ function Lobby({ room, players, me, history, onEdit, onInvite }: { room: RoomRow
               >
                 <span className="text-2xl">{g.emoji}</span>
                 <span className="text-sm font-bold leading-tight">{g.name}</span>
-                <span className="text-xs text-muted-foreground">{playersLabel(g.id)}</span>
+                <span className="text-xs text-muted-foreground">{playersLabel(g.id)}{BOT_GAMES.includes(g.id) && " · 🤖"}</span>
               </button>
             ))}
           </div>
@@ -351,6 +365,21 @@ function Match({ room, players, me, offset, secrets, refresh }: { room: RoomRow;
     setBusy(true);
     try { await rematch({ data: { roomId: room.id, toLobby } }); } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
+
+  // The host's browser paces the robots: one robot move per state change, after a short "thinking" pause.
+  const botsInGame = inGame.some((p) => p.is_bot);
+  useEffect(() => {
+    if (!isHost || !botsInGame || finished) return;
+    let delay = 700 + Math.random() * 600;
+    if (room.game === "reaction") {
+      if (state.phase !== "waiting") return;
+      delay = Math.max(300, state.goAt - (Date.now() + offset) + 250 + Math.random() * 250);
+    }
+    const t = setTimeout(() => {
+      botStep({ data: { roomId: room.id } }).catch(() => {});
+    }, delay);
+    return () => clearTimeout(t);
+  }, [room.version, isHost, botsInGame, finished]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scoreOf = (p: PlayerRow) => (room.game === "tictactoe" ? p.wins : (state.scores?.[p.user_id] ?? 0));
   const turnId = state.turn ?? state.presenter;

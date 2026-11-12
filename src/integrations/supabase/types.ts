@@ -217,6 +217,7 @@ export type Database = {
       room_players: {
         Row: {
           avatar: string
+          is_bot: boolean
           joined_at: string
           last_seen: string
           nickname: string
@@ -228,6 +229,7 @@ export type Database = {
         }
         Insert: {
           avatar?: string
+          is_bot?: boolean
           joined_at?: string
           last_seen?: string
           nickname: string
@@ -239,6 +241,7 @@ export type Database = {
         }
         Update: {
           avatar?: string
+          is_bot?: boolean
           joined_at?: string
           last_seen?: string
           nickname?: string

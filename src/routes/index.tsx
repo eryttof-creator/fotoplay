@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, LogIn, Users, Sparkles, Shield, Camera, RefreshCw, Tv } from "lucide-react";
+import { Plus, LogIn, Users, Sparkles, Shield, Camera, RefreshCw, Tv, Bot } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ const NEWS = [
 function Home() {
   const online = useOnlineCount();
   const { profile, save } = useMyProfile();
-  const [mode, setMode] = useState<"create" | "join" | null>(null);
+  const [mode, setMode] = useState<"create" | "join" | "solo" | null>(null);
   const [code, setCode] = useState("");
   const [lastRoom, setLastRoom] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -70,6 +70,9 @@ function Home() {
               </Button>
               <Button variant="popLime" size="xl" onClick={() => setMode("join")}>
                 <LogIn /> ENTRAR EM SALA
+              </Button>
+              <Button variant="popPlain" size="xl" onClick={() => setMode("solo")}>
+                <Bot /> JOGAR SOZINHO
               </Button>
               <Button variant="popPlain" size="xl" onClick={() => navigate({ to: "/tv" })} className="bg-sun">
                 <Tv /> MODO TV
@@ -129,14 +132,16 @@ function Home() {
       <Dialog open={!!mode} onOpenChange={(o) => !o && setMode(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto rounded-3xl border-2 border-ink">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">{mode === "create" ? "Criar sala" : "Entrar em uma sala"}</DialogTitle>
-            <DialogDescription>Escolha seu apelido e sua foto — ela vai virar sua peça nos jogos.</DialogDescription>
+            <DialogTitle className="font-display text-2xl">{mode === "create" ? "Criar sala" : mode === "solo" ? "Jogar contra robôs" : "Entrar em uma sala"}</DialogTitle>
+            <DialogDescription>
+              {mode === "solo" ? "Você entra numa sala com um robô. Lá dá para adicionar mais robôs e escolher o jogo." : "Escolha seu apelido e sua foto — ela vai virar sua peça nos jogos."}
+            </DialogDescription>
           </DialogHeader>
           {profile && mode && (
             <ProfileEditor
               key={mode}
               initial={{ nickname: profile.nickname, avatar: profile.avatar, photo_path: profile.photo_path }}
-              submitLabel={mode === "create" ? "Criar sala" : "Entrar"}
+              submitLabel={mode === "create" ? "Criar sala" : mode === "solo" ? "Jogar agora" : "Entrar"}
               extra={
                 mode === "join" && (
                   <label className="flex flex-col gap-2">
@@ -153,7 +158,7 @@ function Home() {
               onSubmit={async (p) => {
                 if (mode === "join" && code.length !== 6) throw new Error("O código da sala tem 6 caracteres.");
                 await save(p);
-                const res = mode === "create" ? await createRoom({ data: p }) : await joinRoom({ data: { ...p, code } });
+                const res = mode !== "join" ? await createRoom({ data: { ...p, bots: mode === "solo" ? 1 : 0 } }) : await joinRoom({ data: { ...p, code } });
                 navigate({ to: "/sala/$code", params: { code: res.code } });
               }}
             />
