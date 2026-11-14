@@ -260,6 +260,15 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
         if (ok) { s.scores[uid] += 3; s.scores[s.presenter]++; s.phase = "reveal"; s.answer = answer; }
         return { state: s };
       }
+      if (type === "hint") {
+        if (!presenter || s.phase !== "acting") fail("Só quem faz a mímica pode dar dicas.");
+        const text = String(payload?.text ?? "").trim().slice(0, 60);
+        const answer = (ctx.secrets[s.presenter + ":mime"] as any)?.word ?? "";
+        if (!text || normalize(text).includes(normalize(answer))) fail("Dica inválida.");
+        s.feed.push({ uid, text, ok: false });
+        s.feed = s.feed.slice(-30);
+        return { state: s };
+      }
       if (type === "timeout") {
         if (s.phase !== "acting" || ctx.now < s.endsAt) fail("Ainda há tempo.");
         s.phase = "reveal"; s.answer = (ctx.secrets[s.presenter + ":mime"] as any)?.word ?? "";
@@ -296,7 +305,7 @@ export function applyAction(game: GameId, ctx: Ctx, uid: string, type: string, p
         if (!answer) fail("A palavra secreta não foi encontrada.");
         s.letters.push(letter);
         if (answer.includes(letter)) {
-          s.pattern = Array.from(answer).map((char: string, i: number) => char === letter ? letter : s.pattern[i]).join("");
+          s.pattern = Array.from(String(answer)).map((char: string, i: number) => char === letter ? letter : s.pattern[i]).join("");
           s.scores[uid]++;
         } else s.wrong++;
         if (s.pattern === answer) { s.scores[uid] += 2; s.phase = "reveal"; s.answer = answer; }

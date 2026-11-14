@@ -23,3 +23,18 @@ describe("solo bot counts", () => {
     ).toEqual([]);
   });
 });
+
+import { botMove, mimeHint } from "./bots";
+describe("hangman and mime robots", () => {
+  it("robot picks a secret word when it chooses in hangman", () => {
+    const m = botMove("hangman", { presenter: "b", phase: "prepare" }, "b", {}, 0, () => 0);
+    expect(m?.type).toBe("present");
+  });
+  it("robot guesses an unused letter on its turn", () => {
+    const m = botMove("hangman", { presenter: "me", phase: "guessing", order: ["me", "b"], turn: 1, letters: ["a"] }, "b", {}, 0, () => 0);
+    expect(m).toEqual({ type: "guessLetter", payload: { letter: "e" } });
+  });
+  it("mime hints never reveal the whole word", () => {
+    for (let i = 0; i < 4; i++) expect(mimeHint("girafa", i).toLowerCase()).not.toContain("girafa");
+  });
+});

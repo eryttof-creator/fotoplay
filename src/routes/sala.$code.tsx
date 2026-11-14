@@ -368,18 +368,21 @@ function Match({ room, players, me, offset, secrets, refresh }: { room: RoomRow;
 
   // The host's browser paces the robots: one robot move per state change, after a short "thinking" pause.
   const botsInGame = inGame.some((p) => p.is_bot);
+  const [botTick, setBotTick] = useState(0);
   useEffect(() => {
     if (!isHost || !botsInGame || finished) return;
-    let delay = 700 + Math.random() * 600;
+    let delay = room.game === "mime" ? 2500 + Math.random() * 1500 : 700 + Math.random() * 600;
     if (room.game === "reaction") {
       if (state.phase !== "waiting") return;
       delay = Math.max(300, state.goAt - (Date.now() + offset) + 250 + Math.random() * 250);
     }
     const t = setTimeout(() => {
-      botStep({ data: { roomId: room.id } }).catch(() => {});
+      botStep({ data: { roomId: room.id } })
+        .then((r) => { if (!r?.acted && room.game === "mime") setBotTick((n) => n + 1); })
+        .catch(() => {});
     }, delay);
     return () => clearTimeout(t);
-  }, [room.version, isHost, botsInGame, finished]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [room.version, isHost, botsInGame, finished, botTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scoreOf = (p: PlayerRow) => (room.game === "tictactoe" ? p.wins : (state.scores?.[p.user_id] ?? 0));
   const turnId = state.turn ?? state.presenter;
