@@ -25,11 +25,11 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const NEWS = [
-  { icon: Tv, title: "Modo Televisão", text: "Use sua TV como segunda tela no Quiz da Galera e responda pelo celular!" },
-  { icon: Bot, title: "Mais robôs no modo solo", text: "Agora as partidas solo começam com 3 robôs, respeitando o limite de cada jogo." },
-  { icon: Users, title: "Sistema de Amizades", text: "Crie seu @usuário exclusivo, adicione amigos e convide direto pras salas." },
-  { icon: Camera, title: "Fotos protegidas", text: "Só quem está na mesma sala consegue ver a sua foto de jogador." },
+const NEWS: { icon: typeof Tv; title: string; text: string; to?: string; action?: "solo" }[] = [
+  { icon: Tv, title: "Modo Televisão", text: "Use sua TV como segunda tela no Quiz da Galera e responda pelo celular!", to: "/tv" },
+  { icon: Bot, title: "Mais robôs no modo solo", text: "Agora as partidas solo começam com 3 robôs, respeitando o limite de cada jogo.", action: "solo" },
+  { icon: Users, title: "Sistema de Amizades", text: "Crie seu @usuário exclusivo, adicione amigos e convide direto pras salas.", to: "/amigos" },
+  { icon: Camera, title: "Fotos protegidas", text: "Só quem está na mesma sala consegue ver a sua foto de jogador.", to: "/perfil" },
 ];
 
 function Home() {
@@ -119,13 +119,21 @@ function Home() {
             <Sparkles className="h-7 w-7 text-primary" /> Novidades
           </h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {NEWS.map((n) => (
-              <div key={n.title} className="rounded-3xl border-2 border-ink bg-card p-5 shadow-pop-sm">
-                <n.icon className="mb-3 h-6 w-6 text-primary" />
-                <h3 className="font-bold">{n.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{n.text}</p>
-              </div>
-            ))}
+            {NEWS.map((n) => {
+              const inner = (
+                <>
+                  <n.icon className="mb-3 h-6 w-6 text-primary" />
+                  <h3 className="font-bold">{n.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{n.text}</p>
+                </>
+              );
+              const cls = "press block rounded-3xl border-2 border-ink bg-card p-5 text-left shadow-pop-sm transition-transform hover:-translate-y-1";
+              return n.to ? (
+                <Link key={n.title} to={n.to} className={cls}>{inner}</Link>
+              ) : (
+                <button key={n.title} type="button" onClick={() => setMode(n.action ?? null)} className={cls}>{inner}</button>
+              );
+            })}
           </div>
         </section>
       </main>
